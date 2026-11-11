@@ -282,3 +282,55 @@ h1 { font-weight: normal; font-size: 40px; margin: 4px 0; letter-spacing: 4px; c
 .card-flip .back .b-stat b { font-size: 17px; line-height: 22px; }
 .card-flip .back .b-fame { font-size: 12px; margin-top: auto; }
 .card-flip .back .b-fame small { display: inline; font-size: 9px; }
+
+/* ---- 危険度・依頼・結果・レア演出 ---- */
+.star-badge { color: #ffd84a; letter-spacing: 1px; }
+#room-star { margin-left: 4px; }
+#room-quests { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.quest-who { background: rgba(255,255,255,.04); padding: 6px 8px; box-shadow: 0 0 0 1px #3a3550; }
+.quest-who.me { box-shadow: 0 0 0 2px var(--accent); }
+ul.quests { list-style: none; margin: 4px 0 0; padding: 0; font-size: 13px; }
+ul.quests li { margin: 3px 0; line-height: 1.4; }
+.q-diff { display: inline-block; font-size: 11px; padding: 0 5px; margin-right: 5px; color: #000; }
+.q-diff.easy { background: #8fe3a0; } .q-diff.normal { background: #8fc0ff; } .q-diff.hard { background: #ffb36b; }
+.q-rw { display: block; font-size: 11px; color: #c9b8ff; margin-left: 2px; }
+.quest-done { margin: 8px 0; padding: 6px 10px; box-shadow: 0 0 0 2px #ffd84a; background: rgba(255,216,74,.08); }
+.quest-done h3 { margin: 0 0 4px; color: #ffd84a; }
+.result-stats p { margin: 4px 0 6px; }
+.stats-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px; }
+.stats-table th, .stats-table td { padding: 3px 6px; text-align: left; border-bottom: 1px solid #2c2840; white-space: nowrap; }
+.stats-table td small { margin-left: 4px; color: #9aa0b5; }
+.stats-table tr.me td { background: rgba(255,207,90,.08); }
+.dmg-bar { display: inline-block; width: 60px; height: 6px; background: #2c2840; margin-right: 6px; vertical-align: middle; }
+.dmg-bar i { display: block; height: 100%; background: var(--accent); }
+.retry-box { position: sticky; bottom: -18px; background: var(--panel); padding-bottom: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 2px solid #2c2840; }
+.retry-box .hint { flex-basis: 100%; margin: 0; }
+.retry-box .btn.on { filter: brightness(1.2); box-shadow: 0 0 0 2px #6ee7a0; }
+.rw-rare .card { box-shadow: 0 0 0 2px #ffd84a, 0 0 14px 2px rgba(255,216,74,.6); }
+.notices { position: fixed; right: 14px; top: 56px; z-index: 45; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+.notice { background: #2a2210; box-shadow: 0 0 0 2px #ffd84a, 0 0 12px rgba(255,216,74,.5); color: #ffe9a0; padding: 8px 14px; max-width: 360px; animation: noticeIn .3s ease-out; transition: opacity .5s, transform .5s; }
+.notice.out { opacity: 0; transform: translateX(30px); }
+@keyframes noticeIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: none; } }
+
+/* ---- 固有カード・固有ゲージ ---- */
+.unit .u-gauge { width: 84px; height: 5px; background: #121a2e; box-shadow: 0 0 0 2px #000; margin: 3px auto 2px; position: relative; }
+.unit .u-gauge i { position: absolute; left: 0; top: 0; bottom: 0; background: #4aa3ff; transition: width .3s; }
+.unit .u-gauge.full i { background: #8fd0ff; box-shadow: 0 0 6px 2px rgba(120, 190, 255, .9); animation: gaugePulse 1s ease-in-out infinite alternate; }
+@keyframes gaugePulse { from { filter: brightness(1); } to { filter: brightness(1.5); } }
+.unique-area { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 8px; background: #141a2c; box-shadow: inset 0 0 0 2px #2b3b66; align-self: stretch; justify-content: flex-end; }
+.unique-area .ua-head { font-size: 12px; color: #9fc4ff; white-space: nowrap; }
+.unique-area .ua-head .full { color: #8fd0ff; font-weight: bold; text-shadow: 0 0 6px #4aa3ff; }
+.unique-area .ua-cards { display: flex; gap: 6px; }
+.card.unique-card.active:not(.disabled) { animation: uniqueGlow 1.2s ease-in-out infinite alternate; }
+.card.unique-card.reserved { opacity: .45; }
+@keyframes uniqueGlow { from { box-shadow: 0 0 0 2px #8fd0ff, 0 0 8px 2px rgba(120,190,255,.5); } to { box-shadow: 0 0 0 2px #ffffff, 0 0 18px 6px rgba(120,190,255,.9); } }
+/* 全属性（虹色） */
+.card.all-el { border-image: linear-gradient(135deg, #ff6b4a, #6ee7a0, #4aa3ff, #ffe27a, #b07cff) 1; background-image: linear-gradient(160deg, rgba(255,107,74,.18), rgba(110,231,160,.18), rgba(74,163,255,.18), rgba(255,226,122,.18), rgba(176,124,255,.18)); }
+.card.all-el .c-el span { background: linear-gradient(90deg, #ff6b4a, #6ee7a0, #4aa3ff, #ffe27a, #b07cff); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: bold; }
+.card.all-el .c-el canvas, .card.all-el .c-el img { width: 10px; height: 10px; }
+.card .c-art.all { flex-wrap: nowrap; gap: 1px; }
+.card .c-art.all > * { width: 14px !important; height: 14px !important; }
+.all-el-text { background: linear-gradient(90deg, #ff6b4a, #6ee7a0, #4aa3ff, #ffe27a, #b07cff); -webkit-background-clip: text; background-clip: text; color: transparent !important; font-weight: bold; }
+.retreat-box { position: fixed; left: 50%; top: 56px; transform: translateX(-50%); z-index: 46; background: #2a1420; box-shadow: 0 0 0 2px #ff8a8a, 0 6px 18px rgba(0,0,0,.6); padding: 10px 16px; text-align: center; max-width: 460px; }
+.retreat-box .row { justify-content: center; gap: 8px; margin-top: 6px; display: flex; }
+.retreat-box.hidden { display: none; }

@@ -39,6 +39,14 @@ function expectedIncoming(b, H) {
         for (const p of alive) { const d = B.calcTaken(raw, activeAt(p, k)); hp[p.slot] -= d; total += d * w; }
       }
     }
+    // 毒：今かかっている毒と、危険度の呪いでこれから付く毒（ターン終了時に減る）
+    const curse = D.dangerFor(b.star || 1, b.stageId).curse.find(c => c.status === 'poison');
+    const attacking = curse && b.enemies.some(e => e.alive && e.hp > 0 && predictedHits(e, k));
+    for (const p of alive) {
+      let pz = B.sumStatus(activeAt(p, k), 'poison');
+      if (attacking) pz += curse.value * Math.min(k + 1, curse.turns);
+      if (pz > 0) { hp[p.slot] -= pz; total += pz * w; }
+    }
     for (const p of b.players) if (p.alive && hp[p.slot] <= 0) { total += 60 * w; hp[p.slot] = -999; }
   }
   return total;
@@ -150,7 +158,7 @@ function evaluate(b0, slot, set) {
   const p = B.getPlayer(b, slot);
   for (const u of set) {
     const c = D.CARD_MAP[b.cards[u]];
-    p.hand.splice(p.hand.indexOf(u), 1); p.energy -= c.cost;
+    if (p.hand.includes(u)) p.hand.splice(p.hand.indexOf(u), 1); p.energy -= c.cost;
     p.reserved.push({ uid: u, target: bestTarget(b0, B.getPlayer(b0, slot), c) });
   }
   const o = simulatePlayers(b);
@@ -161,15 +169,18 @@ function evaluate(b0, slot, set) {
 function planAI(b, slot) {
   const p = B.getPlayer(b, slot);
   if (!p || !p.alive) return;
-  for (const r of p.reserved.slice()) { p.hand.push(r.uid); p.energy += D.CARD_MAP[b.cards[r.uid]].cost; }
+  for (const r of p.reserved.slice()) { if (!(p.uniques || []).includes(r.uid)) p.hand.push(r.uid); p.energy += D.CARD_MAP[b.cards[r.uid]].cost; }
   p.reserved = []; p.confirmed = false;
-  const hand = p.hand.slice();
+  // 固有ゲージが満タンなら、固有カードも候補に入れる（1ターンに1枚まで）
+  const uq = p.gauge >= p.gaugeMax ? (p.uniques || []) : [];
+  const hand = p.hand.concat(uq);
   const n = hand.length;
   let best = { score: -1e9, set: [] };
   for (let mask = 0; mask < (1 << n); mask++) {
     let cost = 0; const set = [];
     for (let i = 0; i < n; i++) if (mask & (1 << i)) { set.push(hand[i]); cost += D.CARD_MAP[b.cards[hand[i]]].cost; }
     if (cost > p.energy) continue;
+    if (set.filter(u => uq.includes(u)).length > 1) continue;
     // 手札を使い切りすぎないよう、残す枚数にも少し価値をつける
     const score = evaluate(b, slot, set) + (n - set.length) * 1.5 - (p.energy - cost) * 0.3;
     if (score > best.score) best = { score, set };

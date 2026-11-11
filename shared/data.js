@@ -48,16 +48,16 @@
   // 状態（バフ・デバフ）。値は「同じ種類の合計」で効く。持続ターンは1つずつ別に数える
   // pct: true は%表示
   const STATUS = {
-    atkUp:   { name: '攻撃力', short: '攻↑', desc: '攻撃力+X', good: true },
-    healUp:  { name: '回復量', short: '回↑', desc: '回復量+X（最後に加算）', good: true },
-    dmgUp:   { name: '与ダメージ', short: '与ダメ', desc: '与えるダメージ+X（最後に加算）', good: true },
-    defUp:   { name: '防御', short: '防↑', desc: '受けるダメージ-X', good: true },
-    critUp:  { name: '会心率', short: '会心', desc: 'クリティカル率+X%（ダメージ1.5倍）', good: true, pct: true },
+    atkUp:   { name: '攻撃力アップ', short: '攻↑', desc: '攻撃力+X', good: true },
+    healUp:  { name: '回復量アップ', short: '回↑', desc: '回復量+X（最後に加算）', good: true },
+    dmgUp:   { name: '与ダメージアップ', short: '与ダメ', desc: '与えるダメージ+X（最後に加算）', good: true },
+    defUp:   { name: '防御アップ', short: '防↑', desc: '受けるダメージ-X', good: true },
+    critUp:  { name: '会心率アップ', short: '会心', desc: 'クリティカル率+X%（ダメージ1.5倍）', good: true, pct: true },
     regen:   { name: '再生', short: '再生', desc: 'ターン終了時にHPをX回復', good: true },
     taunt:   { name: '挑発', short: '挑発', desc: '敵の単体攻撃を引きつけ、自分が受けるダメージをX%カット', good: true, pct: true },
     atkDown: { name: '攻撃力ダウン', short: '攻↓', desc: '攻撃力-X', good: false },
     defDown: { name: '防御ダウン', short: '防↓', desc: '防御力-X', good: false },
-    vulnUp:  { name: '被ダメージ', short: '被ダメ', desc: '受けるダメージ+X（最後に加算）', good: false },
+    vulnUp:  { name: '被ダメージアップ', short: '被ダメ↑', desc: '受けるダメージ+X（最後に加算）', good: false },
     poison:  { name: '毒', short: '毒', desc: 'ターン終了時にXダメージ', good: false },
   };
 
@@ -90,7 +90,7 @@
     { id: 'a_tempest', name: '連風斬', role: 'attacker', element: 'wind', cost: 3, priority: P.ATTACK, target: 'enemy', stats: st(5, 1, 0), effects: [D_(7), { ...D_(7), hit: 2 }], chain: { min: 2, effects: [{ ...D_(7), hit: 3 }] } },
     { id: 'a_blade_aura', name: '剣気', role: 'attacker', element: 'fire', cost: 3, priority: P.BUFF, target: 'self', stats: st(6, 1, 0), effects: [S('atkUp', 3, 3)], chain: { min: 2, effects: [S('dmgUp', 4, 3)] } },
     { id: 'a_inferno', name: '業火', role: 'attacker', element: 'fire', cost: 5, priority: P.ATTACK, target: 'enemy', stats: st(5, 2, 0), effects: [D_(32)], chain: { min: 4, effects: [D_(32)] } },
-    { id: 'a_unique', name: '聖剣解放', role: 'attacker', element: 'light', cost: 5, priority: P.ATTACK, target: 'allEnemies', unique: true, stats: st(8, 3, 0), effects: [D_(28)], chain: { min: 4, effects: [D_(28)] } },
+    { id: 'a_unique', name: '聖剣解放', role: 'attacker', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 5, priority: P.ATTACK, target: 'allEnemies', unique: true, stats: st(0, 0, 0), effects: [D_(10)], chain: { min: 4, effects: [D_(18)] } },
 
     // ---- デバッファー（低コスト＝デバフ、高コスト＝攻撃にも参加） ----
     { id: 'd_scorch', name: '灼熱の呪い', role: 'debuffer', element: 'fire', cost: 2, priority: P.DEBUFF, target: 'enemy', stats: st(5, 0, 0), effects: [S('defDown', 5, 2)], chain: { min: 2, effects: [S('defDown', 3, 2)] } },
@@ -106,7 +106,7 @@
     { id: 'd_gale', name: '風縛り', role: 'debuffer', element: 'wind', cost: 3, priority: P.DEBUFF, target: 'allEnemies', stats: st(5, 0, 0), effects: [S('atkDown', 5, 2)], chain: { min: 3, effects: [S('atkDown', 3, 2)] } },
     { id: 'd_breaker', name: '砕氷', role: 'debuffer', element: 'water', cost: 4, priority: P.ATTACK, target: 'enemy', stats: st(5, 1, 0), effects: [D_(14), S('defDown', 5, 2)], chain: { min: 3, effects: [D_(8)] } },
     { id: 'd_drain', name: '吸命', role: 'debuffer', element: 'dark', cost: 5, priority: P.ATTACK, target: 'enemy', stats: st(6, 1, 1), effects: [D_(24)], chain: { min: 2, effects: [{ ...H_(10), self: true }] } },
-    { id: 'd_unique', name: '終焉の刻印', role: 'debuffer', element: 'dark', cost: 5, priority: P.DEBUFF, target: 'enemy', unique: true, stats: st(7, 2, 0), effects: [S('vulnUp', 10, 2), S('poison', 10, 3)], chain: { min: 3, effects: [S('defDown', 8, 2)] } },
+    { id: 'd_unique', name: '終焉の刻印', role: 'debuffer', element: 'dark', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 5, priority: P.DEBUFF, target: 'enemy', unique: true, stats: st(0, 0, 0), effects: [S('vulnUp', 3, 2), S('poison', 3, 3)], chain: { min: 4, effects: [S('vulnUp', 7, 2), S('poison', 7, 3)] } },
 
     // ---- タンク（挑発＋カットはタンクだけ。防御カードには味方全体のドロー+1。攻撃は防御つきのものだけ） ----
     { id: 't_taunt', name: '挑発', role: 'tank', element: 'fire', cost: 2, priority: P.DEFENSE, target: 'self', stats: st(9, 0, 0), effects: [S('taunt', 25, 2)], chain: { min: 2, effects: [S('taunt', 10, 2)] } },
@@ -122,7 +122,7 @@
     { id: 't_dark_guard', name: '影の守り', role: 'tank', element: 'dark', cost: 3, priority: P.DEFENSE, target: 'ally', stats: st(9, 0, 0), effects: [S('defUp', 12, 2), DRAW_ALL], chain: { min: 2, effects: [S('defUp', 4, 2)] } },
     { id: 't_command', name: '総指揮', role: 'tank', element: 'fire', cost: 4, priority: P.DEFENSE, target: 'allAllies', stats: st(8, 0, 0), effects: [{ type: 'draw', value: 2 }], chain: { min: 3, effects: [S('defUp', 4, 2)] } },
     { id: 't_fortress', name: '城壁', role: 'tank', element: 'wind', cost: 5, priority: P.DEFENSE, target: 'allAllies', stats: st(8, 0, 0), effects: [S('defUp', 7, 2), DRAW_ALL], chain: { min: 3, effects: [DRAW_ALL] } },
-    { id: 't_unique', name: '不落の城塞', role: 'tank', element: 'light', cost: 5, priority: P.DEFENSE, target: 'self', unique: true, stats: st(12, 0, 0), effects: [S('taunt', 40, 2), { ...S('defUp', 8, 2), allAllies: true }], chain: { min: 3, effects: [S('taunt', 20, 2)] } },
+    { id: 't_unique', name: '不落の城塞', role: 'tank', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 5, priority: P.DEFENSE, target: 'self', unique: true, stats: st(0, 0, 0), effects: [S('taunt', 10, 2), { ...S('defUp', 2, 2), allAllies: true }], chain: { min: 4, effects: [S('taunt', 30, 2), { ...S('defUp', 6, 2), allAllies: true }] } },
 
     // ---- ヒーラー（攻撃しない。攻撃しながら回復するものだけ例外） ----
     { id: 'h_heal', name: '癒しの光', role: 'healer', element: 'light', cost: 2, priority: P.HEAL, target: 'ally', stats: st(5, 0, 2), effects: [H_(10)], chain: { min: 2, effects: [H_(6)] } },
@@ -196,7 +196,7 @@
     { id: 'h_r_moon', name: '月光の契約', role: 'healer', element: 'dark', rarity: 'rare', cost: 2, priority: P.BUFF, target: 'ally', stats: st(12, 0, 3), effects: [S('dmgUp', 5, 2)], chain: { min: 2, effects: [S('dmgUp', 3, 2)] } },
     { id: 'h_r_night_mend', name: '夜想の癒し', role: 'healer', element: 'dark', rarity: 'rare', cost: 3, priority: P.HEAL, target: 'ally', stats: st(12, 0, 4), effects: [H_(9), S('regen', 3, 2)], chain: { min: 2, effects: [S('regen', 2, 2)] } },
 
-    { id: 'h_unique', name: '女神の加護', role: 'healer', element: 'light', cost: 5, priority: P.HEAL, target: 'allAllies', unique: true, stats: st(7, 0, 3), effects: [H_(18), S('atkUp', 4, 2)], chain: { min: 4, effects: [S('atkUp', 4, 2)] } },
+    { id: 'h_unique', name: '女神の加護', role: 'healer', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 5, priority: P.HEAL, target: 'allAllies', unique: true, stats: st(0, 0, 0), effects: [H_(6), S('atkUp', 1, 2)], chain: { min: 4, effects: [H_(12), S('atkUp', 3, 2)] } },
   ];
   // 初期デッキ（各役職10枚。最初の1枚が代表カード）
   const STARTER = {
@@ -226,7 +226,6 @@
   CARDS.forEach(c => { c.rarity = c.rarity || (c.unique ? 'unique' : 'common'); CARD_MAP[c.id] = c; });
   const ALL_RARE = CARDS.filter(c => c.rarity === 'rare').map(c => c.id);
   // テストプレイ用：2属性カードを最初から所持させる
-  const TEST_GRANT = ['a_steam', 'a_gale_flare', 'd_miasma', 'd_frostbite', 't_tide_wall', 't_holy_flame', 'h_dawn', 'h_ember_hymn'];
   const DECK_SIZE = 10;
   const HAND_START = 5, HAND_MAX = 5, DRAW_PER_TURN = 1;
   const ENERGY_START = 3, ENERGY_MAX = 10;
@@ -266,11 +265,7 @@
   //       ultimate(ラストターンの全体大技) / enrage(本体の攻撃力を永続で+X)
   // parts: 部位。本体のHPが0になると勝ち。部位を壊すとその部位の行動がなくなる
   const ENEMIES = {
-    slime_water: { name: '水スライム', element: 'water', hp: 60, def: 0, sprite: 'slime',
-      pattern: [{ type: 'attack', value: 9 }, { type: 'attackAll', value: 5 }, { type: 'attack', value: 11 }] },
-    slime_fire: { name: '火スライム', element: 'fire', hp: 55, def: 0, sprite: 'slime',
-      pattern: [{ type: 'attackAll', value: 5 }, { type: 'attack', value: 10 }, { type: 'attack', value: 10 }] },
-    eagle_storm: { name: '嵐の大鷲', element: 'wind', hp: 1400, def: 4, sprite: 'eagle', boss: true,
+    eagle_storm: { name: '嵐の大鷲', element: 'wind', hp: 1380, def: 4, sprite: 'eagle', boss: true,
       parts: ['eagle_crest', 'eagle_wing'],
       pattern: [
         { type: 'attack', value: 22 },
@@ -321,21 +316,19 @@
   }
 
   const STAGES = [
-    { id: 'stage1', name: '風鳴りの丘', desc: 'スライムの群れを抜けると、嵐の大鷲が待ち構える。6ターン目の「破滅の嵐」は、防御アップと攻撃力ダウンを重ねて耐えろ。羽（部位）が残っていると大鷲はどんどん強くなる。',
-      waves: [['slime_water', 'slime_fire'], ['eagle_storm']],
+    { id: 'stage1', name: '風鳴りの丘', boss: 'eagle_storm',
       fixedReward: 'a_tempest', randomRewards: 2,
       // レアドロップ：固定報酬枠と名声枠で、それぞれ10%の確率でレアカード（全役職・全属性の40枚から）に変わる
-      rareRate: 0.1, rarePool: 'allRare' },
+      rareRate: 0.1, rarePool: 'allRare', dangerScale: 2.8 },
   ];
-  // ドラゴンのステージ（ウェーブなし。いきなりボス戦。ステージ1のレアカードを持っている前提の強さ）
+  // ドラゴンのステージ（いきなりボス戦。ステージ1のレアカードを持っている前提の強さ）
   const DRAGON_STAGE = {
     fire: { name: '紅蓮竜の火口', fixed: 'a_inferno' }, wind: { name: '翠嵐竜の峡谷', fixed: 'a_tempest' }, water: { name: '蒼海竜の深淵', fixed: 'd_breaker' },
     light: { name: '聖光竜の神殿', fixed: 'h_halo' }, dark: { name: '冥闇竜の奈落', fixed: 'd_drain' },
   };
   for (const el of ['fire', 'wind', 'water', 'light', 'dark']) {
     STAGES.push({ id: 'dragon_' + el, name: DRAGON_STAGE[el].name, recommended: 'レアカード推奨',
-      desc: `${DRAGON_NAMES[el]}が待ち構える。本体は毎ターン全体攻撃、左足は強烈な単体攻撃。背中の棘を放っておくと、竜はどんどん強くなる。`,
-      waves: [['dragon_' + el]], fixedReward: DRAGON_STAGE[el].fixed, randomRewards: 2,
+      boss: 'dragon_' + el, fixedReward: DRAGON_STAGE[el].fixed, randomRewards: 2,
       rareRate: 0.1, rarePool: 'element:' + el });
   }
 
@@ -361,8 +354,112 @@
     { kind: 'fame', id: 'fame_1', rate: 0.10 },
   ];
 
-  const api = { RARITY, ALL_RARE, rarePoolOf, DROP_TABLE, RANDOM_DROP_TABLE, STARTER_IDS, ELEMENTS, ELEMENT_ORDER, affinity, elementsOf, chainCountFor, weaknessOf, SYNC_MULT, costMult, ROLES, ROLE_ORDER, STATUS, P, CARDS, CARD_MAP, STARTER,
-    DECK_SIZE, TEST_GRANT, HAND_START, HAND_MAX, DRAW_PER_TURN, ENERGY_START, ENERGY_MAX, CRIT_MULT, FAME_MAX, deckStats, fameOf, applyChain, sameSlot, ENEMIES, STAGES, rewardPool };
+  // ドラゴンのステージだけ：部位破壊報酬（1部位につき名声の書・1を全員に）と速攻ボーナス（5ターン以内でランダム枠+1）
+  STAGES.forEach(s => { if (s.id.startsWith('dragon_')) s.partReward = 'fame_1'; });
+  // 速攻ボーナス：このターン数以内に倒すとランダム報酬+1（賢いAI・レア入りの弱点デッキで、だいたい半分くらいが達成できる値）
+  const SPEED_TURNS = { stage1: 6, dragon_fire: 8, dragon_wind: 7, dragon_water: 7, dragon_light: 7, dragon_dark: 8 };
+  STAGES.forEach(s => { s.speedTurns = SPEED_TURNS[s.id] || 0; });
+
+  // ===== 危険度（★1〜★5） =====
+  // buff：敵の自己強化（buffBody / buffAll / enrage）の数値にかける倍率
+  // curse：敵の攻撃（単体・全体・必殺）が当たった相手に付けるデバフ
+  // rare / fame：報酬のドロップ率の上乗せ　extraRandom：ランダム報酬枠の追加数
+  // 調整の目安（tools/balance.js の一斉攻撃AI・レア入り弱点デッキ）：ドラゴンで ★1 約90% → ★5 約30%
+  const DANGER = [null,
+    { buff: 1.0, curse: [], rare: 0, fame: 0, extraRandom: 0 },
+    { buff: 1.1, curse: [{ status: 'poison', value: 1, turns: 2 }], rare: 0.05, fame: 1, extraRandom: 0 },
+    { buff: 1.2, curse: [{ status: 'poison', value: 2, turns: 2 }, { status: 'atkDown', value: 1, turns: 2 }], rare: 0.10, fame: 2, extraRandom: 1 },
+    { buff: 1.2, curse: [{ status: 'poison', value: 2, turns: 2 }, { status: 'atkDown', value: 2, turns: 2 }, { status: 'vulnUp', value: 1, turns: 2 }], rare: 0.15, fame: 3, extraRandom: 1 },
+    { buff: 1.3, curse: [{ status: 'poison', value: 3, turns: 2 }, { status: 'atkDown', value: 2, turns: 2 }, { status: 'vulnUp', value: 2, turns: 2 }], rare: 0.20, fame: 4, extraRandom: 2 },
+  ];
+  const STAR_MAX = 5;
+  const dangerOf = (star) => DANGER[Math.max(1, Math.min(STAR_MAX, star | 0 || 1))];
+  // ステージに合わせた危険度（stage.dangerScale：攻撃の回数が少ないステージほど、強化と呪いを大きくする）
+  function dangerFor(star, stageId) {
+    const dg = dangerOf(star); const st = STAGES.find(s => s.id === stageId); const sc = (st && st.dangerScale) || 1;
+    return { ...dg, buff: +(1 + (dg.buff - 1) * sc).toFixed(2), curse: dg.curse.map(c => ({ ...c, value: Math.round(c.value * sc) })) };
+  }
+  // ★ごとのドロップ表（★1が基準。★が1つ上がるごとにレア+5%、名声の書・10 +1%、名声の書・5と1 +2%）
+  function dropTable(star) {
+    const k = dangerOf(star).fame;
+    return [{ kind: 'rare', rate: 0.10 + dangerOf(star).rare }, { kind: 'fame', id: 'fame_10', rate: 0.05 + 0.01 * k },
+      { kind: 'fame', id: 'fame_5', rate: 0.10 + 0.02 * k }, { kind: 'fame', id: 'fame_1', rate: 0.10 + 0.02 * k }];
+  }
+  function randomDropTable(star) {
+    const k = dangerOf(star).fame;
+    return [{ kind: 'fame', id: 'fame_10', rate: 0.05 + 0.01 * k }, { kind: 'fame', id: 'fame_5', rate: 0.10 + 0.02 * k }, { kind: 'fame', id: 'fame_1', rate: 0.10 + 0.02 * k }];
+  }
+
+  // ===== 依頼 =====
+  // プレイヤーごとに3つ（簡単・普通・難しい）。達成するまで残り、達成すると同じ難しさの新しい依頼に入れ替わる。
+  // 判定は勝利したときだけ。報酬：簡単＝名声の書・5／普通＝名声の書・10／難しい＝レア確定（ステージ指定ありならそのステージのレアから）
+  const QUEST_DIFFS = ['easy', 'normal', 'hard'];
+  const QUEST_DIFF_NAME = { easy: '簡単', normal: '普通', hard: '難しい' };
+  const QUEST_REWARD = { easy: { kind: 'fameItem', id: 'fame_5' }, normal: { kind: 'fameItem', id: 'fame_10' }, hard: { kind: 'rare' } };
+  // 役職ごとの活躍の目安（1戦あたり。tools/quest_stats.js で測った平均をもとにした値）
+  const ROLE_GOAL = {
+    attacker: { key: 'dmg', unit: 'ダメージを与える', easy: 2000, normal: 3500, hard: 4600 },
+    debuffer: { key: 'debuffs', unit: '回デバフを付ける', easy: 15, normal: 22, hard: 28 },
+    tank:     { key: 'tauntPulls', unit: '回、挑発で単体攻撃を引きつける', easy: 3, normal: 5, hard: 7 },
+    healer:   { key: 'heal', unit: '回復する', easy: 250, normal: 400, hard: 600 },
+  };
+  const stageName = (id) => (STAGES.find(s => s.id === id) || {}).name || id;
+  const pickOf = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const DRAGON_STAGE_IDS = () => STAGES.filter(s => s.id.startsWith('dragon_')).map(s => s.id);
+  const bossOfStage = (id) => { const s = STAGES.find(x => x.id === id); return s ? ENEMIES[s.boss] : null; };
+  const me = (c) => c.stats.p[c.slot] || {};
+  const QUEST_TPL = {
+    // ---- 簡単 ----
+    e_clear: { diff: 'easy', gen: () => ({ stage: pickOf(STAGES).id }), text: (p) => `${stageName(p.stage)}をクリアする`, check: (c, p) => c.stageId === p.stage },
+    e_chain3: { diff: 'easy', gen: () => ({ n: 3 }), text: (p) => `3チェイン以上のカードを1戦で${p.n}回出して勝つ`, check: (c, p) => (me(c).chain3 || 0) >= p.n },
+    e_role: { diff: 'easy', gen: () => ({ role: pickOf(ROLE_ORDER) }), text: (p) => `${ROLES[p.role].name}で1戦に${ROLE_GOAL[p.role].easy}${ROLE_GOAL[p.role].unit}`, check: (c, p) => c.role === p.role && (me(c)[ROLE_GOAL[p.role].key] || 0) >= ROLE_GOAL[p.role].easy },
+    // ---- 普通 ----
+    n_star2: { diff: 'normal', gen: () => ({ stage: pickOf(DRAGON_STAGE_IDS()) }), text: (p) => `${stageName(p.stage)}を★2以上でクリアする`, check: (c, p) => c.stageId === p.stage && c.star >= 2 },
+    n_nodeath: { diff: 'normal', gen: () => ({ stage: pickOf(STAGES).id }), text: (p) => `${stageName(p.stage)}を誰も倒れずにクリアする`, check: (c, p) => c.stageId === p.stage && c.stats.deaths === 0 },
+    n_parts: { diff: 'normal', gen: () => ({ stage: pickOf(DRAGON_STAGE_IDS()) }), text: (p) => `${stageName(p.stage)}で部位を2つとも壊して勝つ`, check: (c, p) => c.stageId === p.stage && c.stats.partsBroken >= 2 },
+    n_chain4: { diff: 'normal', gen: () => ({ n: 2 }), text: (p) => `4チェインのカードを1戦で${p.n}回出して勝つ`, check: (c, p) => (me(c).chain4 || 0) >= p.n },
+    n_role: { diff: 'normal', gen: () => ({ role: pickOf(ROLE_ORDER) }), text: (p) => `${ROLES[p.role].name}で1戦に${ROLE_GOAL[p.role].normal}${ROLE_GOAL[p.role].unit}`, check: (c, p) => c.role === p.role && (me(c)[ROLE_GOAL[p.role].key] || 0) >= ROLE_GOAL[p.role].normal },
+    // ---- 難しい ----
+    h_star3: { diff: 'hard', gen: () => ({ stage: pickOf(DRAGON_STAGE_IDS()) }), text: (p) => `${stageName(p.stage)}を★3以上でクリアする`, check: (c, p) => c.stageId === p.stage && c.star >= 3 },
+    h_finish: { diff: 'hard', gen: () => ({ stage: pickOf(DRAGON_STAGE_IDS()) }),
+      text: (p) => { const w = weaknessOf(bossOfStage(p.stage).element); return `${stageName(p.stage)}で、${ELEMENTS[w].name}の4チェインのカードでとどめを刺す`; },
+      check: (c, p) => { const f = c.stats.finisher; const w = weaknessOf(bossOfStage(p.stage).element); return c.stageId === p.stage && f && f.count >= 4 && f.elements.includes(w); } },
+    h_nodeath2: { diff: 'hard', gen: () => ({ stage: pickOf(DRAGON_STAGE_IDS()) }), text: (p) => `${stageName(p.stage)}を★2以上・誰も倒れずにクリアする`, check: (c, p) => c.stageId === p.stage && c.star >= 2 && c.stats.deaths === 0 },
+    h_role: { diff: 'hard', gen: () => ({ role: pickOf(ROLE_ORDER) }), text: (p) => `${ROLES[p.role].name}で1戦に${ROLE_GOAL[p.role].hard}${ROLE_GOAL[p.role].unit}`, check: (c, p) => c.role === p.role && (me(c)[ROLE_GOAL[p.role].key] || 0) >= ROLE_GOAL[p.role].hard },
+  };
+  // 新しい依頼を作る（avoid：今持っている依頼。同じ内容は出さない）
+  function genQuest(diff, avoid) {
+    const keys = Object.keys(QUEST_TPL).filter(k => QUEST_TPL[k].diff === diff);
+    const same = (a, b) => a.tpl === b.tpl && JSON.stringify(a.p) === JSON.stringify(b.p);
+    for (let i = 0; i < 30; i++) {
+      const tpl = pickOf(keys);
+      const q = { qid: 'q' + Math.random().toString(36).slice(2, 10), tpl, diff, p: QUEST_TPL[tpl].gen() };
+      if (!(avoid || []).some(a => same(a, q))) return q;
+    }
+    const tpl = keys[0]; return { qid: 'q' + Math.random().toString(36).slice(2, 10), tpl, diff, p: QUEST_TPL[tpl].gen() };
+  }
+  function validQuest(q) { return q && QUEST_TPL[q.tpl] && QUEST_TPL[q.tpl].diff === q.diff && q.p && (!q.p.stage || STAGES.some(s => s.id === q.p.stage)) && (!q.p.role || ROLES[q.p.role]); }
+  function questText(q) { try { return QUEST_TPL[q.tpl].text(q.p); } catch { return '（不明な依頼）'; } }
+  function questCheck(q, ctx) { try { return !!(ctx.victory && QUEST_TPL[q.tpl].check(ctx, q.p)); } catch { return false; } }
+
+  // ===== 固有カード =====
+  // デッキ10枚とは別の「固有枠」に最大3枚。全属性（どのチェインにも参加し、どの敵の弱点も突く）で基本ステータスなし。
+  // 青バー（固有ゲージ）が満タンのときだけ、どれか1枚を使える（5エネルギー）。使うとゲージは0に戻る。
+  // ゲージは自分のカードが入ったチェインの人数でたまる（カード1枚ごと。固有カード自身のチェインではたまらない）。
+  const UNIQUE_MAX = 3;
+  const STARTER_UNIQUE = { attacker: 'a_unique', debuffer: 'd_unique', tank: 't_unique', healer: 'h_unique' };
+  const GAUGE_GAIN = { 2: 1, 3: 2, 4: 4 };
+  const GAUGE_MAX = 26; // うまくチェインすると8ターン目あたりで満タン（tools で測定）
+  const isAllElement = (c) => elementsOf(c).length >= ELEMENT_ORDER.length;
+  function validUniques(role, list) {
+    if (!Array.isArray(list)) return false;
+    if (list.length > UNIQUE_MAX || new Set(list).size !== list.length) return false;
+    return list.every(id => CARD_MAP[id] && CARD_MAP[id].rarity === 'unique' && CARD_MAP[id].role === role);
+  }
+
+  const api = { UNIQUE_MAX, STARTER_UNIQUE, GAUGE_GAIN, GAUGE_MAX, isAllElement, validUniques, DANGER, STAR_MAX, dangerOf, dangerFor, dropTable, randomDropTable, QUEST_DIFFS, QUEST_DIFF_NAME, QUEST_REWARD, QUEST_TPL, ROLE_GOAL, genQuest, validQuest, questText, questCheck,
+    RARITY, ALL_RARE, rarePoolOf, DROP_TABLE, RANDOM_DROP_TABLE, STARTER_IDS, ELEMENTS, ELEMENT_ORDER, affinity, elementsOf, chainCountFor, weaknessOf, SYNC_MULT, costMult, ROLES, ROLE_ORDER, STATUS, P, CARDS, CARD_MAP, STARTER,
+    DECK_SIZE, HAND_START, HAND_MAX, DRAW_PER_TURN, ENERGY_START, ENERGY_MAX, CRIT_MULT, FAME_MAX, deckStats, fameOf, applyChain, sameSlot, ENEMIES, STAGES, rewardPool };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.GameData = api;
 })(typeof window !== 'undefined' ? window : globalThis);

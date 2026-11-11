@@ -30,12 +30,11 @@ function planRandom(b, slot) {
 const BURST_ENERGY = 8;
 const hasEl = (c, W) => D.elementsOf(c).includes(W);
 function planBurstTeam(b, W) {
-  const bossWave = b.wave === b.waveCount - 1;
-  const burstTurn = BURST_ENERGY - D.ENERGY_START + 1; // ウェーブ内の何ターン目か
+  const burstTurn = BURST_ENERGY - D.ENERGY_START + 1; // 何ターン目か
   for (const p of b.players) {
     if (!p.alive) continue;
-    if (!bossWave || b.waveTurn > burstTurn) { planAI(b, p.slot); continue; }
-    if (b.waveTurn < burstTurn) {
+    if (b.turn > burstTurn) { planAI(b, p.slot); continue; }
+    if (b.turn < burstTurn) {
       // 準備：弱点属性のカードのうち強いもの2枚までは温存し、それ以外で賢く戦う
       clearReserve(b, p);
       const val0 = (c) => c.effects.reduce((a, e) => a + (e.type === 'damage' ? e.value : 0), 0) * D.costMult(c.cost) + 1;

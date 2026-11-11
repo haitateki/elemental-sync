@@ -13,7 +13,7 @@
     const collection = {};
     Object.values(D.STARTER).flat().forEach(id => (collection[id] = (collection[id] || 0) + 1));
     const leaders = {}; D.ROLE_ORDER.forEach(r => (leaders[r] = D.STARTER[r][0]));
-    return { fameBonus: {}, name: '', playerId: 'p_' + Math.random().toString(36).slice(2) + Date.now().toString(36), collection, decks: JSON.parse(JSON.stringify(D.STARTER)), leaders, claimed: [] };
+    return { fameBonus: {}, name: '', playerId: 'p_' + Math.random().toString(36).slice(2) + Date.now().toString(36), collection, decks: JSON.parse(JSON.stringify(D.STARTER)), leaders, uniques: {}, claimed: [], claimedRids: [], quests: [], clears: {} };
   }
   let save;
   try { save = JSON.parse(localStorage.getItem(SAVE_KEY)) || defaultSave(); } catch { save = defaultSave(); }
@@ -24,43 +24,53 @@
     // 存在しなくなったカードは所持から外す
     const col = {}; Object.entries(out.collection || {}).forEach(([id, n]) => { if (D.CARD_MAP[id] && n > 0) col[id] = Math.floor(n); });
     D.ROLE_ORDER.forEach(r => D.STARTER[r].forEach(id => { if (!col[id]) col[id] = 1; })); // 初期カードは必ず持っている
+    Object.values(D.STARTER_UNIQUE).forEach(id => { if (!col[id]) col[id] = 1; }); // 最初の固有カードも必ず持っている
     out.collection = col;
     out.decks = out.decks || {}; out.leaders = out.leaders || {};
     D.ROLE_ORDER.forEach(r => {
       // デッキ：その役職の所持カードだけ・重複なし。足りなければ初期カード→所持カードで補う
-      let deck = [...new Set((out.decks[r] || []).filter(id => D.CARD_MAP[id] && (D.CARD_MAP[id].role === r || D.CARD_MAP[id].role === 'any') && col[id]))].slice(0, D.DECK_SIZE);
-      for (const id of [...D.STARTER[r], ...Object.keys(col).filter(id => D.CARD_MAP[id].role === r)]) { if (deck.length >= D.DECK_SIZE) break; if (!deck.includes(id)) deck.push(id); }
+      const okDeck = (id) => D.CARD_MAP[id] && D.CARD_MAP[id].rarity !== 'unique' && (D.CARD_MAP[id].role === r || D.CARD_MAP[id].role === 'any') && col[id];
+      let deck = [...new Set((out.decks[r] || []).filter(okDeck))].slice(0, D.DECK_SIZE);
+      for (const id of [...D.STARTER[r], ...Object.keys(col).filter(id => D.CARD_MAP[id].role === r)]) { if (deck.length >= D.DECK_SIZE) break; if (!deck.includes(id) && okDeck(id)) deck.push(id); }
       out.decks[r] = deck;
       if (!deck.includes(out.leaders[r])) out.leaders[r] = deck[0];
+      // 固有枠：その役職の所持している固有カードを最大3枚。空なら最初の固有カード
+      out.uniques = out.uniques || {};
+      let uq = [...new Set((out.uniques[r] || []).filter(id => D.CARD_MAP[id] && D.CARD_MAP[id].rarity === 'unique' && D.CARD_MAP[id].role === r && col[id]))].slice(0, D.UNIQUE_MAX);
+      if (!uq.length && D.STARTER_UNIQUE[r]) uq = [D.STARTER_UNIQUE[r]];
+      out.uniques[r] = uq;
     });
     out.claimed = Array.isArray(out.claimed) ? out.claimed.slice(-30) : [];
+    out.claimedRids = Array.isArray(out.claimedRids) ? out.claimedRids.slice(-400) : [];
+    // 依頼：簡単・普通・難しいを1つずつ。壊れたもの・足りないものは作り直す
+    const qs = (Array.isArray(out.quests) ? out.quests : []).filter(D.validQuest);
+    out.quests = D.QUEST_DIFFS.map(df => qs.find(q => q.diff === df) || D.genQuest(df, qs));
+    // クリア状況：ステージごとにクリアした最高の★
+    const cl = {}; Object.entries(out.clears || {}).forEach(([id, n]) => { if (D.STAGES.some(x => x.id === id) && n > 0) cl[id] = Math.min(D.STAR_MAX, n | 0); }); out.clears = cl;
     const fb = {}; Object.entries(out.fameBonus || {}).forEach(([id, n]) => { if (D.CARD_MAP[id] && n > 0) fb[id] = Math.floor(n); }); out.fameBonus = fb;
     out.version = SAVE_VERSION;
     return out;
   }
-  // テストプレイ用：2属性カードを最初から所持
-  D.TEST_GRANT.forEach(id => { if (!save.collection[id]) save.collection[id] = 1; });
-  // 同じブラウザでタブを複数開いて試せるよう、タブごとに別プレイヤーIDにもできる（?tab=1）
   const params = new URLSearchParams(location.search);
-  const playerId = params.get('tab') ? save.playerId + '_t' + params.get('tab') : save.playerId;
+  const playerId = save.playerId;
   // そのカードの名声（重ねた枚数＋名声カードで上げた分）
   function fameFor(id) { return D.fameOf(save.collection[id], (save.fameBonus || {})[id]); }
   function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch { } }
   persist();
-  const encodeSave = () => btoa(unescape(encodeURIComponent(JSON.stringify({ n: save.name, c: save.collection, d: save.decks, l: save.leaders, f: save.fameBonus }))));
+  const encodeSave = () => btoa(unescape(encodeURIComponent(JSON.stringify({ n: save.name, c: save.collection, d: save.decks, l: save.leaders, f: save.fameBonus, q: save.quests, cl: save.clears, u: save.uniques }))));
   function importSave(code) {
     const o = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
     if (!o.c || !o.d) throw new Error('bad');
-    applyImported({ name: o.n, collection: o.c, decks: o.d, leaders: o.l, fameBonus: o.f });
+    applyImported({ name: o.n, collection: o.c, decks: o.d, leaders: o.l, fameBonus: o.f, quests: o.q, clears: o.cl, uniques: o.u });
   }
   function applyImported(o) {
     if (!o || !o.collection) throw new Error('bad');
-    save = sanitize({ ...save, name: o.name || save.name, collection: o.collection, decks: o.decks || {}, leaders: o.leaders || {}, fameBonus: o.fameBonus || save.fameBonus || {} });
+    save = sanitize({ ...save, name: o.name || save.name, collection: o.collection, decks: o.decks || {}, leaders: o.leaders || {}, fameBonus: o.fameBonus || save.fameBonus || {}, quests: o.quests || save.quests, clears: o.clears || save.clears || {}, uniques: o.uniques || save.uniques || {} });
     persist();
   }
   // セーブデータをファイルに書き出す（JSON）
   function exportSaveFile() {
-    const data = { game: 'elemental-sync', version: SAVE_VERSION, exportedAt: new Date().toISOString(), name: save.name, collection: save.collection, decks: save.decks, leaders: save.leaders, fameBonus: save.fameBonus };
+    const data = { game: 'elemental-sync', version: SAVE_VERSION, exportedAt: new Date().toISOString(), name: save.name, collection: save.collection, decks: save.decks, leaders: save.leaders, fameBonus: save.fameBonus, quests: save.quests, clears: save.clears, uniques: save.uniques };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     const d = new Date(); const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
@@ -96,6 +106,11 @@
   function send(msg) { const s = JSON.stringify(msg); if (wsReady) ws.send(s); else outbox.push(s); }
   function setConn(t) { $('conn-status').textContent = t; }
   setInterval(() => { if (wsReady) send({ type: 'ping' }); }, 20000);
+
+  // 自分の依頼・クリア状況・代表カードの名声をサーバー（ルーム）に知らせる
+  function myRoomSlot() { return state.room ? state.room.slots.find(s => s && s.playerId === playerId) : null; }
+  function profilePayload() { const me = myRoomSlot(); return { quests: save.quests, clears: save.clears, fame: me && me.leader ? fameFor(me.leader) : undefined }; }
+  function sendProfile() { if (state.room) send({ type: 'profile', ...profilePayload() }); }
 
   // ---------- 状態 ----------
   const state = { screen: 'title', room: null, battle: null, view: null, slot: null, deadline: null,
@@ -162,27 +177,32 @@
         const v = Math.floor(ef.value * mult * cm); const stt = D.STATUS[ef.status];
         const num = show(v, mult > 1 || cm > 1) + (stt.pct ? '%' : '');
         if (ef.status === 'taunt') return pre + `挑発＋被ダメ${num}カット（${turnsTxt(ef.turns)}）`;
-        return pre + `${stt.name}${stt.good || ef.status === 'vulnUp' ? '+' : ''}${ef.status === 'atkDown' || ef.status === 'defDown' ? '-' : ''}${num}（${turnsTxt(ef.turns)}）`;
+        // 方向は名前（アップ／ダウン）で表すので、数値に＋−の記号は付けない
+        return pre + `${stt.name}${num}（${turnsTxt(ef.turns)}）`;
       }
       case 'draw': return pre + `次ターンドロー+${ef.value}`;
     }
     return '';
   }
   // 「火チェイン2」のような表記
-  const chainLabel = (card) => `<span class="chain-name">${D.elementsOf(card).map(e => `<span style="color:${D.ELEMENTS[e].color}">${D.ELEMENTS[e].name}</span>`).join('')}チェイン${card.chain.min}</span>`;
-  const elNames = (card) => D.elementsOf(card).map(e => D.ELEMENTS[e].name).join('・');
-  function setElVars(el, card) { const els = D.elementsOf(card); el.style.setProperty('--el', D.ELEMENTS[els[0]].color); el.style.setProperty('--el2', D.ELEMENTS[els[1] || els[0]].color); if (els.length > 1) el.classList.add('dual'); }
-  // チェインの追加効果の文章（元の効果に上乗せされるものは「+X」で書く）
+  const chainLabel = (card) => D.isAllElement(card) ? `<span class="chain-name all-el-text">全属性チェイン${card.chain.min}</span>` : `<span class="chain-name">${D.elementsOf(card).map(e => `<span style="color:${D.ELEMENTS[e].color}">${D.ELEMENTS[e].name}</span>`).join('')}チェイン${card.chain.min}</span>`;
+  const elNames = (card) => D.isAllElement(card) ? '全属性' : D.elementsOf(card).map(e => D.ELEMENTS[e].name).join('・');
+  function setElVars(el, card) { const els = D.elementsOf(card); el.style.setProperty('--el', D.ELEMENTS[els[0]].color); el.style.setProperty('--el2', D.ELEMENTS[els[1] || els[0]].color); if (D.isAllElement(card)) el.classList.add('all-el'); else if (els.length > 1) el.classList.add('dual'); }
+  // チェインの追加効果の文章。元の効果に上乗せされるものは「元の値→チェイン時の値」で書く（例：攻撃力ダウン4→7）
   function chainEffText(card, ce, cm) {
     const base = card.effects.find(e => D.sameSlot(e, ce));
-    if (!base) return effText(ce, 1, null, cm);
-    const v = ce.type === 'status' || ce.type === 'heal' || ce.type === 'damage' ? Math.floor(ce.value * (ce.type === 'status' ? cm : 1)) : ce.value;
+    if (!base) return 'さらに' + effText(ce, 1, null, cm); // チェインで新しく加わる効果
     const pre = ce.self ? '自分の' : ce.allAllies ? '味方全体の' : '';
+    const x = cm > 1 ? '×' + cm : '';
     switch (ce.type) {
-      case 'damage': return pre + `ダメージ+${ce.value}`;
-      case 'heal': return pre + `回復+${ce.value}`;
-      case 'draw': return pre + `ドロー+${ce.value}枚`;
-      case 'status': { const stt = D.STATUS[ce.status]; return pre + (ce.status === 'taunt' ? `カット+${v}%` : `${stt.name}+${v}${stt.pct ? '%' : ''}`); }
+      case 'damage': return pre + `(${base.value}→${base.value + ce.value}＋攻撃力)${x}ダメージ`;
+      case 'heal': return pre + `HP(${base.value}→${base.value + ce.value}＋回復力)${x}回復`;
+      case 'draw': return pre + `次ターンドロー${base.value}→${base.value + ce.value}枚`;
+      case 'status': {
+        const stt = D.STATUS[ce.status]; const pct = stt.pct || ce.status === 'taunt' ? '%' : '';
+        const b = Math.floor(base.value * cm), t = Math.floor((base.value + ce.value) * cm);
+        return pre + `${ce.status === 'taunt' ? '被ダメカット' : stt.name}${b}${pct}→${t}${pct}`;
+      }
     }
     return '';
   }
@@ -204,7 +224,7 @@
     d.appendChild(h('div', 'c-name', esc(c.name)));
     if (opts.showRole) d.appendChild(h('div', 'c-role', (D.ROLES[c.role] ? D.ROLES[c.role].name : '全役職') + (c.rarity !== 'common' ? '・' + D.RARITY[c.rarity].name : '')));
     if (c.rarity !== 'common') { d.classList.add('r-' + c.rarity); d.appendChild(h('div', 'c-rarity', D.RARITY[c.rarity].name)); }
-    const art = h('div', 'c-art'); D.elementsOf(c).forEach(e => art.appendChild(icon(e))); d.appendChild(art);
+    const art = h('div', 'c-art' + (D.isAllElement(c) ? ' all' : '')); D.elementsOf(c).forEach(e => art.appendChild(icon(e))); d.appendChild(art);
     const cmv = D.costMult(c.cost);
     d.appendChild(h('div', 'c-meta', `<span class="c-prio">${PRIO_NAME[c.priority] || ''} 優先${c.priority}</span>${cmv > 1 && c.rarity !== 'item' ? `<span class="c-cm">重×${cmv}</span>` : ''}`));
     d.appendChild(h('div', 'c-desc', cardDescHTML(c, mult, opts.count, opts.ctx)));
@@ -331,8 +351,8 @@
     const sl = S.slimeSprite('water'); art.save(); art.translate(300, 0); art.scale(-1, 1); art.drawImage(S.eagleSprite('wind'), 0, 8, 100, 80); art.restore();
     art.drawImage(sl, 184, 82, 40, 30);
     const needName = () => { const n = $('in-name').value.trim(); if (!n) { toast('なまえを入力してください'); return null; } save.name = n; persist(); return n; };
-    $('btn-create').onclick = () => { const n = needName(); if (n) send({ type: 'create', name: n, timer: +$('in-timer').value }); };
-    $('btn-join').onclick = () => { const n = needName(); const code = $('in-code').value.trim().toUpperCase(); if (!n) return; if (code.length !== 4) return toast('4文字のルームコードを入力してください'); send({ type: 'join', name: n, code }); };
+    $('btn-create').onclick = () => { const n = needName(); if (n) send({ type: 'create', name: n, timer: +$('in-timer').value, quests: save.quests, clears: save.clears }); };
+    $('btn-join').onclick = () => { const n = needName(); const code = $('in-code').value.trim().toUpperCase(); if (!n) return; if (code.length !== 4) return toast('4文字のルームコードを入力してください'); send({ type: 'join', name: n, code, quests: save.quests, clears: save.clears }); };
     $('btn-deck').onclick = () => { openDeck(); };
     $('btn-save').onclick = () => {
       const total = Object.values(save.collection).reduce((a, n) => a + n, 0), kinds = Object.keys(save.collection).length;
@@ -367,7 +387,9 @@
     if (!deck.includes(save.leaders[role])) save.leaders[role] = deck[0];
     const leader = save.leaders[role];
     const owned = $('deck-owned'); owned.innerHTML = '';
-    D.CARDS.filter(c => (c.role === role || c.role === 'any') && save.collection[c.id]).sort((a, b) => (a.role === 'any') - (b.role === 'any')).forEach(c => {
+    // 固有枠（デッキとは別。最大3枚）
+    renderUniqueSlots(role);
+    D.CARDS.filter(c => (c.role === role || c.role === 'any') && c.rarity !== 'unique' && save.collection[c.id]).sort((a, b) => (a.role === 'any') - (b.role === 'any')).forEach(c => {
       const inDeck = deck.includes(c.id);
       const it = h('div', 'owned-item' + (inDeck ? ' in' : ''));
       it.appendChild(flipCard(c.id, { leader: c.id === leader, fame: fameFor(c.id) }));
@@ -402,6 +424,26 @@
       else { if (deck.length >= D.DECK_SIZE) return toast(`デッキは${D.DECK_SIZE}枚までです。先に1枚外してください`); deck.push(id); }
       persist(); renderDeck();
     }
+  }
+  function renderUniqueSlots(role) {
+    const box = $('deck-uniques'); box.innerHTML = '';
+    const sel = save.uniques[role];
+    const owned = D.CARDS.filter(c => c.rarity === 'unique' && c.role === role && save.collection[c.id]);
+    owned.forEach(c => {
+      const on = sel.includes(c.id);
+      const it = h('div', 'owned-item' + (on ? ' in' : ''));
+      it.appendChild(renderCard(c.id, {}));
+      const ctl = h('div', 'ctl');
+      const tg = h('button', 'btn small' + (on ? ' on' : ''), on ? '✔ 固有枠に入っている' : '固有枠に入れる');
+      tg.onclick = () => {
+        const i = sel.indexOf(c.id);
+        if (i >= 0) { if (sel.length <= 1) return toast('固有カードは1枚以上入れてください'); sel.splice(i, 1); }
+        else { if (sel.length >= D.UNIQUE_MAX) return toast(`固有枠は${D.UNIQUE_MAX}枚までです`); sel.push(c.id); }
+        persist(); renderDeck();
+      };
+      ctl.appendChild(tg); it.appendChild(ctl); box.appendChild(it);
+    });
+    $('deck-unique-count').textContent = `${sel.length}/${D.UNIQUE_MAX}枚`;
   }
   $('btn-deck-back').onclick = () => { if (state.room) { show('room'); renderRoom(); } else show('title'); };
   // ---- 名声カードを使う ----
@@ -448,13 +490,13 @@
       const takenBy = room.slots.find((s, i) => s && i !== mySlot && s.role === r);
       const b = h('button', 'btn role-btn' + (me && me.role === r ? ' on' : ''));
       b.appendChild(heroCanvas(r));
-      b.appendChild(h('div', '', `${D.ROLES[r].name}<small>${D.ROLES[r].sub}／HP${D.ROLES[r].hp}</small>${takenBy ? `<small>（${esc(takenBy.name)}が選択中）</small>` : ''}`));
+      b.appendChild(h('div', '', `${D.ROLES[r].name}<small>${D.ROLES[r].sub}</small>${takenBy ? `<small>（${esc(takenBy.name)}が選択中）</small>` : ''}`));
       b.disabled = !!takenBy;
       b.onclick = () => {
         if (me && me.role === r) return send({ type: 'setRole', role: null });
         const deck = save.decks[r]; const leader = save.leaders[r];
         if (deck.length !== D.DECK_SIZE || !deck.includes(leader)) return toast(`デッキが${D.DECK_SIZE}枚ではありません。デッキ編集で直してください`);
-        send({ type: 'setRole', role: r, deck, leader, fame: fameFor(leader) });
+        send({ type: 'setRole', role: r, deck, leader, fame: fameFor(leader), uniques: save.uniques[r] });
       };
       pick.appendChild(b);
     });
@@ -464,15 +506,57 @@
     const sel = $('room-stage'); sel.innerHTML = '';
     D.STAGES.forEach(sg => { const o = document.createElement('option'); o.value = sg.id; o.textContent = sg.name + (sg.recommended ? `（${sg.recommended}）` : ''); sel.appendChild(o); });
     sel.value = room.stageId; sel.disabled = !isHost;
-    $('stage-info').innerHTML = `<b>${esc(st.name)}</b><p class="hint">${esc(st.desc)}</p><p class="hint">報酬：${esc(D.CARD_MAP[st.fixedReward].name)}（${Math.round((st.rareRate || 0) * 100)}%でレアに変化）＋ランダム${st.randomRewards}枚＋各プレイヤーの代表カードの名声に応じて追加報酬（出た報酬はパーティ全員がもらえる）</p>`;
+    fillStarSelect($('room-star'), room, isHost);
+    $('stage-info').innerHTML = `<b>${esc(st.name)}</b> <span class="star-badge">${starText(room.star)}</span>
+      <p class="hint">${dangerDesc(room.star, room.stageId)}</p>`;
+    renderRoomQuests(room);
     $('room-timer').value = String(room.timer); $('room-timer').disabled = !isHost;
     const ready = room.slots.every(s => !s || s.role);
-    $('btn-start').disabled = !isHost || !ready;
-    $('start-hint').textContent = !isHost ? 'ホストが開始するのを待っています' : ready ? '準備OK！' : '全員が役職を選ぶと開始できます';
+    if (room.inBattle && room.ended) {
+      // 途中参加：ほかのメンバーが結果画面を見ている間に役職を選んで「準備OK」を押し、「もう一度」で一緒に出発する
+      const meReady = room.retry.includes(playerId);
+      $('btn-start').textContent = meReady ? '準備OK（取り消す）' : '準備OK';
+      $('btn-start').disabled = !me || !me.role;
+      $('start-hint').textContent = 'ほかのメンバーが戦闘結果を見ています。役職を選んで「準備OK」を押し、全員が「もう一度」を押すと一緒に出発します。';
+    } else {
+      $('btn-start').textContent = '戦闘開始';
+      $('btn-start').disabled = !isHost || !ready;
+      $('start-hint').textContent = !isHost ? 'ホストが開始するのを待っています' : ready ? '準備OK！' : '全員が役職を選ぶと開始できます';
+    }
   }
   $('room-timer').onchange = () => send({ type: 'setTimer', timer: +$('room-timer').value });
   $('room-stage').onchange = () => send({ type: 'setStage', stageId: $('room-stage').value });
-  $('btn-start').onclick = () => send({ type: 'start' });
+  $('room-star').onchange = () => send({ type: 'setStar', star: +$('room-star').value });
+  const starText = (n) => '★'.repeat(n) + '☆'.repeat(D.STAR_MAX - n);
+  // 危険度の選択肢（ホストのセーブで解放されている★まで）
+  function fillStarSelect(el, room, isHost) {
+    el.innerHTML = '';
+    for (let n = 1; n <= D.STAR_MAX; n++) { const o = document.createElement('option'); o.value = n; o.textContent = `★${n}${n > room.maxStar ? '（未解放）' : ''}`; o.disabled = n > room.maxStar; el.appendChild(o); }
+    el.value = String(room.star); el.disabled = !isHost;
+  }
+  function dangerDesc(star, stageId) {
+    if (star <= 1) return '危険度★1：通常の強さ。クリアすると★2が解放されます。';
+    const dg = D.dangerFor(star, stageId);
+    const cur = dg.curse.map(c => `${D.STATUS[c.status].name}${c.value}`).join('・');
+    return `危険度★${star}：敵の強化が×${dg.buff}。敵の攻撃が当たると${cur}（${dg.curse[0].turns}ターン）。${star < D.STAR_MAX ? `クリアすると★${star + 1}が解放されます。` : ''}`;
+  }
+  // 依頼（ルームにいる全員分）
+  function questLine(q) { return `<span class="q-diff ${q.diff}">${D.QUEST_DIFF_NAME[q.diff]}</span>${esc(D.questText(q))}<span class="q-rw">${q.diff === 'hard' ? 'レア確定' : esc(D.CARD_MAP[D.QUEST_REWARD[q.diff].id].name)}</span>`; }
+  function renderRoomQuests(room) {
+    const box = $('room-quests'); box.innerHTML = '';
+    room.slots.forEach(s => {
+      if (!s) return;
+      const qs = s.playerId === playerId ? save.quests : (s.quests || []);
+      const d = h('div', 'quest-who' + (s.playerId === playerId ? ' me' : ''), `<b>${esc(s.name)}</b>`);
+      const ul = h('ul', 'quests'); qs.forEach(q => ul.appendChild(h('li', '', questLine(q))));
+      d.appendChild(ul); box.appendChild(d);
+    });
+  }
+  $('btn-start').onclick = () => {
+    const room = state.room; if (!room) return;
+    if (room.inBattle && room.ended) send({ type: 'retry', value: !room.retry.includes(playerId), ...profilePayload() });
+    else send({ type: 'start' });
+  };
   $('btn-room-leave').onclick = () => { send({ type: 'leave' }); state.room = null; show('title'); };
   $('btn-copy').onclick = () => {
     const url = `${location.origin}${location.pathname}?room=${state.room.code}`;
@@ -485,12 +569,17 @@
     if (m.type === 'lobby') { if (state.screen === 'room' || state.screen === 'battle') { state.room = null; state.battle = null; show('title'); } return; }
     if (m.type === 'left') return;
     if (m.type === 'room') {
+      const wasInBattle = state.screen === 'battle' && state.battle;
       state.room = m.room;
-      if (!m.room.inBattle) {
+      if (m.room.inBattle && m.room.ended) renderRetry();
+      renderRetreat();
+      if (wasInBattle && !m.room.inBattle && m.room.lastRetreat && Date.now() - m.room.lastRetreat < 5000) toast('撤退しました（報酬は持ち帰れません）', 'info');
+      // 戦闘に参加していない人（結果画面中に途中参加した人）はルーム画面で待つ
+      if (!m.room.inBattle || !(m.room.members || []).includes(playerId)) {
         state.battle = null; state.view = null; state.anim = []; state.animating = false;
         if (state.screen !== 'deck') { closeModal(); show('room'); }
         renderRoom();
-        history.replaceState(null, '', `?room=${m.room.code}${params.get('tab') ? '&tab=' + params.get('tab') : ''}`);
+        history.replaceState(null, '', `?room=${m.room.code}`);
       }
       return;
     }
@@ -502,18 +591,28 @@
   sctx.imageSmoothingEnabled = false;
   let bg = null;
   const SW = 320, SH = 180, GROUND = 152;
-  const fx = { units: {}, particles: [], shake: 0 };
+  const fx = { units: {}, particles: [], shake: 0, pillars: [], flash: 0 };
 
   function onBattle(m) {
+    // 「もう一度」で新しい戦闘が始まったら、前の戦闘の表示をリセットする
+    if (state.battle && state.battle.id !== m.battle.id) {
+      state.battle = null; state.view = null; state.anim = []; state.animating = false; state.resultFor = null;
+      fx.units = {}; fx.particles = []; fx.pillars = []; closeModal(); show('battle');
+      state.logLines = []; $('log').innerHTML = '';
+    }
     const first = !state.battle;
     state.battle = m.battle; state.slot = m.slot; state.deadline = m.deadline;
     if (state.screen !== 'battle') { show('battle'); state.logLines = []; $('log').innerHTML = ''; }
-    if (first || !state.view) { state.view = clone(m.battle); bg = bg || S.background(SW, SH, 11); logLine(`【${m.battle.stageName}】戦闘開始！`); }
+    if (first || !state.view) { state.view = clone(m.battle); bg = bg || S.background(SW, SH, 11); logLine(`【${m.battle.stageName}】戦闘開始！`); const boss = m.battle.enemies.find(e => !e.part); if (boss && m.battle.turn === 1 && !m.events) banner(`⚠ ${esc(boss.name)} 出現 ⚠`, 1800); }
     if (m.events && m.events.length) {
       state.targeting = null;
       state.anim.push(...m.events.map(e => ({ ...e })));
       if (!state.animating) runAnim();
-    } else if (!state.animating) { state.view = clone(m.battle); renderBattleUI(); }
+    } else if (!state.animating) {
+      state.view = clone(m.battle); renderBattleUI();
+      // 再接続したときなど、演出なしで戦闘の終了を受け取った場合
+      if ((m.battle.phase === 'victory' || m.battle.phase === 'defeat') && state.resultFor !== m.battle.id) showResult();
+    }
   }
   const clone = (o) => JSON.parse(JSON.stringify(o));
 
@@ -627,9 +726,21 @@
       sctx.restore();
       f.flash = Math.max(0, f.flash - 1);
     });
+    // レアドロップの光の柱
+    fx.pillars = fx.pillars.filter(pl => pl.life > 0);
+    fx.pillars.forEach(pl => {
+      const a = Math.min(1, pl.life / 40), wgrow = Math.min(1, (90 - pl.life) / 12);
+      const w = Math.round(18 * wgrow);
+      sctx.globalAlpha = 0.45 * a; sctx.fillStyle = '#ffd84a'; sctx.fillRect(Math.round(pl.x - w / 2), 0, w, pl.y);
+      sctx.globalAlpha = 0.8 * a; sctx.fillStyle = '#fff6c2'; sctx.fillRect(Math.round(pl.x - w / 6), 0, Math.max(1, Math.round(w / 3)), pl.y);
+      sctx.globalAlpha = 1;
+      if (pl.life % 3 === 0) fx.particles.push({ x: pl.x + (Math.random() - .5) * 18, y: pl.y - Math.random() * pl.y, vx: 0, vy: -0.6, life: 25, c: Math.random() > .5 ? '#ffd84a' : '#ffffff', s: 1 });
+      pl.life--;
+    });
     // パーティクル
     fx.particles = fx.particles.filter(pt => pt.life > 0);
     fx.particles.forEach(pt => { pt.x += pt.vx; pt.y += pt.vy; pt.vy += 0.08; pt.life--; sctx.fillStyle = pt.c; sctx.fillRect(Math.round(pt.x), Math.round(pt.y), pt.s, pt.s); });
+    if (fx.flash > 0) { sctx.setTransform(1, 0, 0, 1, 0, 0); sctx.globalAlpha = fx.flash; sctx.fillStyle = '#ffffff'; sctx.fillRect(0, 0, SW, SH); sctx.globalAlpha = 1; fx.flash = Math.max(0, fx.flash - 0.04); }
   }
   function burst(x, y, color, n = 14) {
     for (let k = 0; k < n; k++) fx.particles.push({ x, y, vx: (Math.random() - .5) * 3, vy: -Math.random() * 2.5, life: 20 + Math.random() * 20, c: Math.random() > .3 ? color : '#ffffff', s: Math.random() > .7 ? 2 : 1 });
@@ -661,8 +772,7 @@
   function renderBattleUI() {
     const b = state.battle, v = state.view; if (!b || !v) return;
     layoutOverlay();
-    $('b-stage').textContent = b.stageName;
-    $('b-wave').textContent = `ウェーブ ${v.wave + 1}/${v.waveCount}`;
+    $('b-stage').textContent = `${b.stageName} ★${b.star || 1}`;
     $('b-turn').textContent = `ターン ${v.turn}`;
     const planning = !state.animating && b.phase === 'planning';
     const me = b.players.find(p => p.slot === state.slot);
@@ -694,6 +804,7 @@
       u.appendChild(h('div', 'u-name', `${p.slot === state.slot ? '★' : ''}${esc(p.name)}`));
       u.appendChild(h('div', 'u-role', D.ROLES[p.role].name));
       u.appendChild(bar(p.hp, p.maxHp));
+      u.appendChild(gaugeBar(p.gauge || 0, p.gaugeMax || D.GAUGE_MAX));
       const st = h('div', 'u-status');
       statusTags(p.status).forEach(x => st.appendChild(x));
       u.appendChild(st);
@@ -783,6 +894,22 @@
           if (state.targeting && state.targeting.uid === uid) { card.classList.add('selected'); state.targeting.el = card; state.targeting.mult = 1; state.targeting.count = 0; }
           hand.appendChild(card);
         });
+        // 固有カード（手札とは別の領域）
+        const ua = $('unique-area'); ua.innerHTML = '';
+        const full = (me.gauge || 0) >= (me.gaugeMax || D.GAUGE_MAX);
+        const uqUsed = me.reserved.some(rs => (me.uniques || []).includes(rs.uid));
+        ua.appendChild(h('div', 'ua-head', `固有カード <span class="${full ? 'full' : ''}">${full ? '使用可能！' : `ゲージ ${me.gauge || 0}/${me.gaugeMax || D.GAUGE_MAX}`}</span>`));
+        const row = h('div', 'ua-cards');
+        (me.uniques || []).forEach(uid => {
+          const cid = b.cards[uid], c = D.CARD_MAP[cid];
+          const reservedNow = me.reserved.some(rs => rs.uid === uid);
+          const can = planning && me.alive && !me.confirmed && full && !uqUsed && c.cost <= me.energy;
+          const card = renderCard(cid, { mult: 1, disabled: !can, onClick: () => can && pickCard(uid), ctx: { ...state.handCtx, element: c.element, elements: D.elementsOf(c) } });
+          card.classList.add('unique-card'); if (full && !uqUsed) card.classList.add('active'); if (reservedNow) card.classList.add('reserved');
+          if (state.targeting && state.targeting.uid === uid) { card.classList.add('selected'); state.targeting.el = card; state.targeting.mult = 1; state.targeting.count = 0; }
+          row.appendChild(card);
+        });
+        ua.appendChild(row);
         me.reserved.forEach(rs => {
           const c = D.CARD_MAP[b.cards[rs.uid]];
           const tgt = c.target === 'enemy' ? ` → ${b.enemies[rs.target] ? b.enemies[rs.target].name : ''}` : c.target === 'ally' ? ` → ${nameOfSlot(b, rs.target)}` : '';
@@ -802,6 +929,11 @@
     }
     $('target-hint').classList.toggle('hidden', !state.targeting);
     if (state.targeting) $('target-hint').textContent = state.targeting.card.target === 'allEnemies' ? '敵をクリック（全体攻撃なので、どの敵を選んでも全体に当たります）' : state.targeting.card.target === 'enemy' ? '対象の敵をクリック（右クリック/Escで取り消し）' : '対象の味方をクリック（右クリック/Escで取り消し）';
+  }
+  // 固有ゲージ（青いバー）。満タンで光る
+  function gaugeBar(v, max) {
+    const b = h('div', 'u-gauge' + (v >= max ? ' full' : '')); const i = h('i'); i.style.width = Math.min(100, v / max * 100) + '%'; b.appendChild(i);
+    b.title = `固有ゲージ ${v}/${max}（チェインに参加するとたまる。満タンで固有カードが使える）`; return b;
   }
   function bar(hp, max) {
     const b = h('div', 'u-bar'); const i = h('i'); i.style.width = Math.max(0, hp / max * 100) + '%'; b.appendChild(i);
@@ -830,8 +962,10 @@
     else if (it.type === 'buffAll') txt = `▲ ${esc(it.name || '強化')}：竜全体の攻撃力+${it.value}`;
     else if (it.type === 'charge') txt = `… ${esc(it.name || '力をためている')}`;
     else if (it.type === 'ultimate') { cls += ' doom'; txt = `☠ ${esc(it.name || '必殺')} ${raw(it.value)} 全体`; }
+    if (it.curse && it.curse.length) txt += ` ＋${it.curse.map(c => D.STATUS[c.status].short + c.value).join('・')}`;
     const d = h('div', cls, txt);
-    if (it.type === 'attack' || it.type === 'attackAll' || it.type === 'ultimate') d.title = '表示は敵の攻撃力。実際のダメージ＝（この数値−防御アップ）×（1−カット率）';
+    if (it.curse && it.curse.length) d.title = `当たると ${it.curse.map(c => `${D.STATUS[c.status].name}${c.value}`).join('・')}（${it.curse[0].turns}ターン）`;
+    else if (it.type === 'attack' || it.type === 'attackAll' || it.type === 'ultimate') d.title = '表示は敵の攻撃力。実際のダメージ＝（この数値−防御アップ）×（1−カット率）';
     return d;
   }
   function hitbox(ov, side, i, pos, alive) {
@@ -921,14 +1055,13 @@
   function runAnim() {
     state.animating = true;
     renderBattleUI();
-    const HEAD = ['card', 'enemyAct', 'sync', 'wave', 'victory', 'defeat'];
+    const HEAD = ['card', 'enemyAct', 'sync', 'victory', 'defeat', 'drop'];
     const step = () => {
       const ev = state.anim.shift();
       if (!ev) {
         state.animating = false; state.view = clone(state.battle);
         renderBattleUI();
-        if (state.battle.phase === 'victory') showVictory();
-        else if (state.battle.phase === 'defeat') showDefeat();
+        if (state.battle.phase === 'victory' || state.battle.phase === 'defeat') showResult();
         return;
       }
       let wait;
@@ -1005,12 +1138,26 @@
         const pos = unitPos(ev.side, ev.i); burst(pos.x, pos.y - pos.hgt / 2, '#ffffff', 30);
         logLine(`${o ? o.name : ''}は倒れた！`); renderBattleUI(); return 350;
       }
-      case 'wave': {
-        state.view.enemies = clone(state.battle.enemies); state.view.wave = ev.wave;
-        Object.keys(fx.units).filter(k => k[0] === 'e').forEach(k => delete fx.units[k]);
-        const boss = state.battle.enemies.find(e => e.boss);
-        banner(boss ? `⚠ ${esc(boss.name)} 出現 ⚠<small>${esc(D.STAGES.find(s => s.id === state.battle.stageId).desc)}</small>` : `ウェーブ ${ev.wave + 1}`, 2200);
-        fx.shake = 10; renderBattleUI(); return 1500;
+      case 'gauge': { const o = viewObj('p', ev.slot); if (o) { o.gauge = ev.value; o.gaugeMax = ev.max; } return 0; }
+      case 'partBreak': floatText('e', ev.i, '部位破壊！', '#ffcf5a'); return 300;
+      case 'drop': {
+        // 報酬の確定（所持カードに入るのは戦闘が勝利・全滅で終わったとき。撤退すると何も持ち帰れない）
+        const mine = ev.items.filter(x => x.slot === state.slot);
+        mine.forEach((it, k) => setTimeout(() => floatText('e', ev.i, `${D.CARD_MAP[it.id].name} 獲得！`, it.kind === 'rare' ? '#ffd84a' : '#9fe8ff', true), k * 260));
+        const rares = ev.items.filter(x => x.kind === 'rare');
+        if (rares.length) {
+          const pos = unitPos('e', ev.i);
+          fx.pillars.push({ x: pos.x, y: pos.y, life: 90 }); fx.flash = 0.7; fx.shake = Math.max(fx.shake, 6);
+          floatText('e', ev.i, 'RARE!', '#ffd84a');
+          // 全員への通知（名声ボーナスで全員に配られたレアは1回だけ）
+          const seen = new Set();
+          rares.forEach(r => {
+            const key = r.bonus ? 'b:' + r.id + ':' + r.fromSlot : 'p:' + r.slot + ':' + r.rid;
+            if (seen.has(key)) return; seen.add(key);
+            notice(r.bonus ? `★${esc(r.from)}の名声ボーナスで、全員がレア「${esc(D.CARD_MAP[r.id].name)}」を入手！` : `${r.slot === state.slot ? 'あなた' : esc(r.name)}がレア「${esc(D.CARD_MAP[r.id].name)}」を入手！`);
+          });
+        }
+        return 250 + mine.length * 260 + (rares.length ? 1300 : 0);
       }
       case 'victory': banner('勝利！', 1500); return 1200;
       case 'defeat': banner('全滅…', 1500); return 1200;
@@ -1020,30 +1167,126 @@
 
   // ---------- 勝敗 ----------
   function isHost() { return state.room && state.room.hostId === playerId; }
-  function showVictory() {
-    const b = state.battle; const mine = (b.rewards || {})[state.slot] || [];
-    const key = (state.room ? state.room.code : '') + ':' + Object.keys(b.cards)[0];
-    const fresh = mine.length && !save.claimed.includes(key);
-    const wrap = h('div', 'rewards');
-    const KIND = { fixed: 'ステージ報酬', rare: '✦レアドロップ！', random: 'ランダム報酬', fame: '★名声ボーナス', fameItem: '📜名声カード！' };
-    mine.forEach((r) => {
-      const had = save.collection[r.id] || 0;
-      if (fresh) save.collection[r.id] = had + 1;
-      const from = r.bonus ? (r.fromSlot === state.slot ? '（あなたの名声）' : `（${esc(r.from)}の名声）`) : '';
-      const label = r.kind === 'fameItem' && r.slot === 'random' ? 'ランダム報酬 📜名声カード！' : (r.kind === 'fame' ? '' : (KIND[r.kind] || ''));
-      const box = h('div'); box.appendChild(h('div', 'tag', (r.bonus ? `★名声ボーナス${from} ` : '') + label));
-      box.appendChild(renderCard(r.id, { showRole: true }));
-      const isItem = D.CARD_MAP[r.id].rarity === 'item';
-      box.appendChild(h('div', 'tag', isItem ? `所持 ${save.collection[r.id] || 0}枚（デッキ編集で使えます）` : (fresh ? had : (save.collection[r.id] - 1)) > 0 ? `所持済み → 名声+1（名声${fameFor(r.id)}）` : 'NEW!'));
-      wrap.appendChild(box);
-    });
-    if (fresh) { save.claimed.push(key); save.claimed = save.claimed.slice(-30); persist(); }
-    modal(`<h2>勝利！ ${esc(b.stageName)}</h2><p>手に入れたカードは所持カードに追加されました。同じカードを重ねて手に入れると、そのカードの名声が上がります。名声ボーナスで出た報酬は、パーティ全員がもらえます。</p>`, isHost() ? [{ label: 'ロビーに戻る', primary: true, onClick: () => send({ type: 'backToLobby' }) }] : [{ label: '閉じる（ホストがロビーに戻すのを待ちます）' }]);
-    $('modal-body').appendChild(wrap);
+  // 報酬を所持カードに追加する（同じ報酬を2回受け取らないよう、報酬ごとのIDで管理）
+  state.claimInfo = {};
+  function claimItems(list) {
+    let changed = false;
+    for (const r of list) {
+      if (!r || !r.rid || save.claimedRids.includes(r.rid) || !D.CARD_MAP[r.id]) continue;
+      state.claimInfo[r.rid] = { had: save.collection[r.id] || 0 };
+      save.collection[r.id] = (save.collection[r.id] || 0) + 1;
+      save.claimedRids.push(r.rid); changed = true;
+    }
+    if (changed) { save.claimedRids = save.claimedRids.slice(-400); persist(); sendProfile(); }
   }
-  function showDefeat() {
-    modal(`<h2>全滅…</h2><p>属性をそろえて、倍率を最大まで引き出そう。最後のターンは4人全員のチェインが鍵です。</p>`,
-      isHost() ? [{ label: 'ロビーに戻る', primary: true, onClick: () => send({ type: 'backToLobby' }) }] : [{ label: '閉じる（ホストがロビーに戻すのを待ちます）' }]);
+  // 撤退：誰かが提案したら全員に賛成／反対を聞く。全員賛成で撤退
+  function renderRetreat() {
+    const box = $('retreat-box'); const room = state.room;
+    const rt = room && room.inBattle && !room.ended ? room.retreat : null;
+    const member = room && (room.members || []).includes(playerId);
+    $('btn-retreat').disabled = !(room && room.inBattle && !room.ended && member) || !!rt;
+    if (!rt || !member) { box.classList.add('hidden'); return; }
+    const humans = room.slots.filter(s => s && s.connected && room.members.includes(s.playerId));
+    const yes = humans.filter(s => rt.yes.includes(s.playerId)).length;
+    const meYes = rt.yes.includes(playerId);
+    box.classList.remove('hidden'); box.innerHTML = '';
+    box.appendChild(h('div', '', `<b>${esc(rt.from)}</b>が撤退を提案しました（賛成 ${yes}/${humans.length}）<br><small>全員が賛成すると撤退します。撤退すると報酬は何も持ち帰れません。</small>`));
+    const row = h('div', 'row');
+    if (!meYes) { const y = h('button', 'btn primary small', '賛成'); y.onclick = () => send({ type: 'retreat', action: 'yes' }); row.appendChild(y); }
+    else row.appendChild(h('span', 'hint', 'あなたは賛成済み'));
+    const n = h('button', 'btn small', meYes ? '取り消す' : '反対'); n.onclick = () => send({ type: 'retreat', action: 'no' }); row.appendChild(n);
+    box.appendChild(row);
+  }
+  $('btn-retreat').onclick = () => {
+    modal('<h2>撤退しますか？</h2><p>撤退を提案します。全員が賛成すると戦闘をやめてロビーに戻ります。<br><b>撤退すると、この戦闘の報酬（部位破壊の報酬も含む）は何も持ち帰れません。</b></p>',
+      [{ label: '撤退を提案する', primary: true, onClick: () => send({ type: 'retreat', action: 'propose' }) }, { label: 'やめる' }]);
+  };
+  function notice(html) {
+    const n = h('div', 'notice', html); $('notices').appendChild(n);
+    setTimeout(() => n.classList.add('out'), 4200); setTimeout(() => n.remove(), 4800);
+  }
+  // 依頼の達成とクリア状況をセーブに反映する
+  function applyBattleEnd(b) {
+    if (state.appliedFor === b.id) return; state.appliedFor = b.id;
+    if (b.phase === 'victory') save.clears[b.stageId] = Math.max(save.clears[b.stageId] || 0, b.star || 1);
+    for (const qr of (b.questResults || {})[state.slot] || []) {
+      const i = save.quests.findIndex(q => q.qid === qr.qid);
+      if (i >= 0) save.quests[i] = D.genQuest(save.quests[i].diff, save.quests);
+    }
+    persist(); sendProfile();
+  }
+  const KIND = { fixed: 'ステージ報酬', rare: '✦レアドロップ！', random: 'ランダム報酬', fame: '★名声ボーナス', fameItem: '📜名声カード！', part: '部位破壊' };
+  function rewardBox(r) {
+    const box = h('div', r.kind === 'rare' ? 'rw-rare' : '');
+    const from = r.bonus ? (r.fromSlot === state.slot ? '（あなたの名声）' : `（${esc(r.from)}の名声）`) : '';
+    let label = KIND[r.kind] || '';
+    if (r.kind === 'part') label = `部位破壊（${esc(r.part || '')}）`;
+    else if (r.quest) label = `依頼達成 ${r.kind === 'rare' ? '✦レア確定' : ''}`;
+    else if (r.slotKind === 'speed') label = `⚡速攻ボーナス ${r.kind === 'fameItem' ? '📜' : ''}`;
+    else if (r.slotKind === 'star') label = `★危険度ボーナス ${r.kind === 'fameItem' ? '📜' : ''}`;
+    else if (r.kind === 'fameItem' && r.slotKind === 'random') label = 'ランダム報酬 📜名声カード！';
+    else if (r.kind === 'fame') label = '';
+    box.appendChild(h('div', 'tag', (r.bonus ? `★名声ボーナス${from} ` : '') + label));
+    box.appendChild(renderCard(r.id, { showRole: true }));
+    const isItem = D.CARD_MAP[r.id].rarity === 'item';
+    const ci = state.claimInfo[r.rid];
+    box.appendChild(h('div', 'tag', isItem ? `所持 ${save.collection[r.id] || 0}枚（デッキ編集で使えます）` : !ci ? `名声${fameFor(r.id)}` : ci.had > 0 ? `所持済み → 名声+1（名声${fameFor(r.id)}）` : 'NEW!'));
+    return box;
+  }
+  // 戦闘の結果：MVP・与ダメージの割合・最大チェイン数・撃破ターン
+  function statsTable(b) {
+    const st = b.stats || { p: {} };
+    const rows = b.players.map(p => ({ p, s: st.p[p.slot] || {} }));
+    const totalDmg = rows.reduce((a, r) => a + (r.s.dmg || 0), 0) || 1;
+    const score = (s) => (s.dmg || 0) + (s.heal || 0) + 25 * ((s.buffs || 0) + (s.debuffs || 0)) + 15 * (s.draws || 0) + (s.tanked || 0);
+    const mvp = rows.slice().sort((a, c) => score(c.s) - score(a.s))[0];
+    const t = h('table', 'stats-table');
+    t.innerHTML = `<tr><th></th><th>名前</th><th>与ダメージ</th><th>回復</th><th>バフ/デバフ</th><th>最大チェイン</th><th>貢献</th></tr>` + rows.map(({ p, s }) => {
+      const pct = Math.round((s.dmg || 0) / totalDmg * 100);
+      return `<tr class="${p.slot === state.slot ? 'me' : ''}"><td>${mvp && mvp.p === p ? '👑' : ''}</td><td>${esc(p.name)}<small>${D.ROLES[p.role].name}</small></td>
+        <td><div class="dmg-bar"><i style="width:${pct}%"></i></div>${s.dmg || 0}（${pct}%）</td><td>${s.heal || 0}</td><td>${s.buffs || 0} / ${s.debuffs || 0}</td><td>${s.maxChain || 0}</td><td>${score(s)}</td></tr>`;
+    }).join('');
+    const wrap = h('div', 'result-stats');
+    wrap.appendChild(h('p', '', `${b.phase === 'victory' ? '撃破' : '全滅'}ターン：<b>${b.turn}</b>　部位破壊：<b>${st.partsBroken || 0}</b>　倒れた人数：<b>${st.deaths || 0}</b>${mvp ? `　MVP：<b>👑${esc(mvp.p.name)}</b>` : ''}`));
+    wrap.appendChild(t);
+    return wrap;
+  }
+  function showResult() {
+    const b = state.battle; if (!b) return;
+    state.resultFor = b.id;
+    const mine = (b.rewards || {})[state.slot] || [];
+    claimItems(mine);
+    applyBattleEnd(b);
+    const win = b.phase === 'victory';
+    const qr = (b.questResults || {})[state.slot] || [];
+    modal(`<h2>${win ? '勝利！' : '全滅…'} ${esc(b.stageName)} <span class="star-badge">${starText(b.star || 1)}</span></h2>
+      `, []);
+    const body = $('modal-body');
+    body.appendChild(statsTable(b));
+    if (qr.length) { const q = h('div', 'quest-done', '<h3>依頼達成！</h3>'); qr.forEach(x => q.appendChild(h('div', '', `<span class="q-diff ${x.diff}">${D.QUEST_DIFF_NAME[x.diff]}</span>${esc(x.text)}`))); body.appendChild(q); }
+    if (mine.length) {
+      body.appendChild(h('h3', '', '手に入れたカード'));
+      const wrap = h('div', 'rewards'); mine.forEach(r => wrap.appendChild(rewardBox(r))); body.appendChild(wrap);
+    } else if (!win) body.appendChild(h('p', 'hint', '持ち帰れた報酬はありません'));
+    body.appendChild(h('div', '', '<div id="retry-box" class="retry-box"></div>'));
+    renderRetry();
+  }
+  // もう一度：危険度の選択（ホスト）と、全員の準備状況
+  function renderRetry() {
+    const box = $('retry-box'); const room = state.room; if (!box || !room) return;
+    const host = isHost();
+    const humans = room.slots.filter(s => s && s.connected);
+    const ready = humans.filter(s => room.retry.includes(s.playerId)).length;
+    const meReady = room.retry.includes(playerId);
+    box.innerHTML = '';
+    const lab = h('label', '', '次の危険度 '); const sel = h('select'); fillStarSelect(sel, room, host);
+    sel.onchange = () => send({ type: 'setStar', star: +sel.value }); lab.appendChild(sel);
+    box.appendChild(lab);
+    const rb = h('button', 'btn primary' + (meReady ? ' on' : ''), meReady ? `準備OK（${ready}/${humans.length}）キャンセル` : `もう一度（${ready}/${humans.length}）`);
+    rb.onclick = () => send({ type: 'retry', value: !meReady, ...profilePayload() });
+    box.appendChild(rb);
+    if (host) { const lb = h('button', 'btn', 'ロビーに戻る'); lb.onclick = () => send({ type: 'backToLobby' }); box.appendChild(lb); }
+    box.appendChild(h('p', 'hint', host ? '全員が「もう一度」を押すと、同じメンバー・同じステージで再出発します。★はここで変えられます。' : '全員が「もう一度」を押すと再出発します。★はホストが選びます。'));
   }
   function showRules() {
     modal(`<div class="rules"><h2>ルール</h2>
@@ -1056,9 +1299,13 @@
         <li><b>コスト倍率</b>：4コストのカードは×1.2、5コストのカードは×1.5が最終威力（ダメージ・回復量・バフ・デバフの数値）にかかります。</li>
         <li><b>回復量</b>＝（カードの回復量＋回復力）×チェイン倍率 ＋ 回復量アップ</li>
         <li><b>受けるダメージ</b>＝（敵の攻撃力 − 防御アップ）×（1 − カット率）。カット率はタンクの挑発カードを使った本人だけにかかります。挑発で引きつけられるのは単体攻撃だけです。</li>
-        <li><b>手札</b>は最初5枚・上限5枚。毎ターン1枚引きます（使わなかったカードは残ります）。<b>エネルギー</b>は3から始まり毎ターン最大値+1（上限10）、毎ターン満タンに戻ります。ウェーブが変わると、エネルギーは3に戻り、デッキも初期化されます（全カードを混ぜ直して手札5枚から）。</li>
+        <li><b>手札</b>は最初5枚・上限5枚。毎ターン1枚引きます（使わなかったカードは残ります）。<b>エネルギー</b>は3から始まり毎ターン最大値+1（上限10）、毎ターン満タンに戻ります。</li>
         <li><b>ステータス</b>（HP・攻撃力・回復力）はデッキ10枚の合計。★代表カードは2倍で数えます。</li>
-        <li><b>ボス</b>は本体と部位に分かれています。本体を倒せば勝ち。部位を壊すと、その部位の行動がなくなります。ラストターンの大技は、持続するバフ・デバフを重ねて耐えましょう。</li>
+        <li><b>ボス</b>は本体と部位に分かれています。本体を倒せば勝ち。部位を壊すと、その部位の行動がなくなります。</li>
+        <li><b>固有カード</b>：デッキとは別の固有枠に最大3枚入れられます（デッキ編集で選択）。全属性なので、どのチェインにも参加し、どの敵の弱点も突きます。HPの下の青いゲージは、自分のカードがチェインに入るとたまり（人数が多いほど多く）、満タンになると固有カードを1枚使えます（5エネルギー）。使うとゲージは0に戻ります。</li>
+        <li><b>撤退</b>：戦闘画面上部の「撤退」で提案し、全員が賛成すると戦闘をやめてロビーに戻ります。撤退するとその戦闘の報酬は何も持ち帰れません（壊した部位の報酬も、勝利か全滅で戦闘が終わったときに受け取ります）。人間が全員倒れても、AIの味方が残っていれば戦闘は自動で進みます。</li>
+        <li><b>危険度</b>：★が上がるほど敵の強化が大きくなり、攻撃にデバフ（毒・攻撃力ダウン・被ダメージアップ）が付きます。ステージを★Nでクリアすると★N+1が解放されます（ホストのセーブで判定）。</li>
+        <li><b>依頼</b>：一人3つ（簡単・普通・難しい）。勝利したときに判定し、達成すると新しい依頼に入れ替わります。</li>
       </ul></div>`);
   }
 
