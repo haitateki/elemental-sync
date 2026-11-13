@@ -80,7 +80,7 @@
     { id: 'a_fire_slash', name: '炎の斬撃', role: 'attacker', element: 'fire', cost: 2, priority: P.ATTACK, target: 'enemy', stats: st(6, 1, 0), effects: [D_(10)], chain: { min: 2, effects: [D_(6)] } },
     { id: 'a_wind_slash', name: '疾風斬り', role: 'attacker', element: 'wind', cost: 2, priority: P.ATTACK, target: 'enemy', stats: st(6, 1, 0), effects: [D_(10)], chain: { min: 2, effects: [D_(6)] } },
     { id: 'a_water_slash', name: '水刃', role: 'attacker', element: 'water', cost: 2, priority: P.ATTACK, target: 'enemy', stats: st(6, 1, 0), effects: [D_(10)], chain: { min: 2, effects: [D_(6)] } },
-    { id: 'a_light_strike', name: '閃光突き', role: 'attacker', element: 'light', cost: 2, priority: P.ATTACK, target: 'enemy', stats: st(6, 1, 0), effects: [D_(9)], chain: { min: 2, effects: [{ ...S('critUp', 20, 2), self: true }] } },
+    { id: 'a_light_strike', name: '閃光突き', role: 'attacker', element: 'light', cost: 2, priority: P.ATTACK, target: 'enemy', stats: st(6, 1, 0), effects: [D_(10)], chain: { min: 2, effects: [D_(6)] } },
     { id: 'a_war_cry', name: '闘気', role: 'attacker', element: 'dark', cost: 2, priority: P.BUFF, target: 'self', stats: st(6, 1, 0), effects: [S('atkUp', 4, 2)], chain: { min: 2, effects: [S('atkUp', 3, 2)] } },
     { id: 'a_focus', name: '集中', role: 'attacker', element: 'light', cost: 3, priority: P.BUFF, target: 'self', stats: st(6, 0, 0), effects: [S('critUp', 30, 2)], chain: { min: 3, effects: [S('critUp', 30, 2)] } },
     { id: 'a_whirl', name: '旋風', role: 'attacker', element: 'wind', cost: 3, priority: P.ATTACK, target: 'allEnemies', stats: st(5, 1, 0), effects: [D_(9)], chain: { min: 3, effects: [D_(9)] } },
@@ -90,7 +90,9 @@
     { id: 'a_tempest', name: '連風斬', role: 'attacker', element: 'wind', cost: 3, priority: P.ATTACK, target: 'enemy', stats: st(5, 1, 0), effects: [D_(7), { ...D_(7), hit: 2 }], chain: { min: 2, effects: [{ ...D_(7), hit: 3 }] } },
     { id: 'a_blade_aura', name: '剣気', role: 'attacker', element: 'fire', cost: 3, priority: P.BUFF, target: 'self', stats: st(6, 1, 0), effects: [S('atkUp', 3, 3)], chain: { min: 2, effects: [S('dmgUp', 4, 3)] } },
     { id: 'a_inferno', name: '業火', role: 'attacker', element: 'fire', cost: 5, priority: P.ATTACK, target: 'enemy', stats: st(5, 2, 0), effects: [D_(32)], chain: { min: 4, effects: [D_(32)] } },
-    { id: 'a_unique', name: '聖剣解放', role: 'attacker', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 5, priority: P.ATTACK, target: 'allEnemies', unique: true, stats: st(0, 0, 0), effects: [D_(10)], chain: { min: 4, effects: [D_(18)] } },
+    { id: 'a_unique', name: '聖剣解放', role: 'attacker', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 5, priority: P.ATTACK, target: 'allEnemies', unique: true, gauge: 3, critMult: 2.0, stats: st(0, 0, 0), effects: [D_(10)], chain: { min: 4, effects: [D_(18)] } },
+    { id: 'a_unique1', name: '聖刃一閃', role: 'attacker', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 2, priority: P.ATTACK, target: 'enemy', unique: true, gauge: 1, critMult: 1.3, stats: st(0, 0, 0), effects: [D_(8)], chain: { min: 4, effects: [D_(12)] } },
+    { id: 'a_unique2', name: '聖剣連舞', role: 'attacker', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 3, priority: P.ATTACK, target: 'enemy', unique: true, gauge: 2, critMult: 1.6, stats: st(0, 0, 0), effects: [D_(12), S('atkDown', 2, 2)], chain: { min: 4, effects: [D_(18), S('atkDown', 3, 2)] } },
 
     // ---- デバッファー（低コスト＝デバフ、高コスト＝攻撃にも参加） ----
     { id: 'd_scorch', name: '灼熱の呪い', role: 'debuffer', element: 'fire', cost: 2, priority: P.DEBUFF, target: 'enemy', stats: st(5, 0, 0), effects: [S('defDown', 5, 2)], chain: { min: 2, effects: [S('defDown', 3, 2)] } },
@@ -106,7 +108,9 @@
     { id: 'd_gale', name: '風縛り', role: 'debuffer', element: 'wind', cost: 3, priority: P.DEBUFF, target: 'allEnemies', stats: st(5, 0, 0), effects: [S('atkDown', 5, 2)], chain: { min: 3, effects: [S('atkDown', 3, 2)] } },
     { id: 'd_breaker', name: '砕氷', role: 'debuffer', element: 'water', cost: 4, priority: P.ATTACK, target: 'enemy', stats: st(5, 1, 0), effects: [D_(14), S('defDown', 5, 2)], chain: { min: 3, effects: [D_(8)] } },
     { id: 'd_drain', name: '吸命', role: 'debuffer', element: 'dark', cost: 5, priority: P.ATTACK, target: 'enemy', stats: st(6, 1, 1), effects: [D_(24)], chain: { min: 2, effects: [{ ...H_(10), self: true }] } },
-    { id: 'd_unique', name: '終焉の刻印', role: 'debuffer', element: 'dark', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 5, priority: P.DEBUFF, target: 'enemy', unique: true, stats: st(0, 0, 0), effects: [S('vulnUp', 3, 2), S('poison', 3, 3)], chain: { min: 4, effects: [S('vulnUp', 7, 2), S('poison', 7, 3)] } },
+    { id: 'd_unique', name: '終焉の刻印', role: 'debuffer', element: 'dark', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 5, priority: P.DEBUFF, target: 'enemy', unique: true, gauge: 3, stats: st(0, 0, 0), effects: [S('vulnUp', 3, 2), S('poison', 3, 3)], chain: { min: 4, effects: [S('vulnUp', 7, 2), S('poison', 7, 3)] } },
+    { id: 'd_unique1', name: '呪いの兆し', role: 'debuffer', element: 'dark', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 2, priority: P.DEBUFF, target: 'allEnemies', unique: true, gauge: 1, stats: st(0, 0, 0), effects: [S('atkDown', 2, 2)], chain: { min: 4, effects: [S('atkDown', 4, 2)] } },
+    { id: 'd_unique2', name: '蝕みの鎖', role: 'debuffer', element: 'dark', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 3, priority: P.DEBUFF, target: 'allEnemies', unique: true, gauge: 2, stats: st(0, 0, 0), effects: [S('defDown', 2, 2), S('poison', 2, 3)], chain: { min: 4, effects: [S('defDown', 3, 2), S('poison', 3, 3)] } },
 
     // ---- タンク（挑発＋カットはタンクだけ。防御カードには味方全体のドロー+1。攻撃は防御つきのものだけ） ----
     { id: 't_taunt', name: '挑発', role: 'tank', element: 'fire', cost: 2, priority: P.DEFENSE, target: 'self', stats: st(9, 0, 0), effects: [S('taunt', 25, 2)], chain: { min: 2, effects: [S('taunt', 10, 2)] } },
@@ -115,14 +119,16 @@
     { id: 't_shield', name: '守護の盾', role: 'tank', element: 'water', cost: 2, priority: P.DEFENSE, target: 'ally', stats: st(9, 0, 0), effects: [S('defUp', 8, 2), DRAW_ALL], chain: { min: 2, effects: [S('defUp', 4, 2)] } },
     { id: 't_guard_all', name: '聖域', role: 'tank', element: 'light', cost: 4, priority: P.DEFENSE, target: 'allAllies', stats: st(8, 0, 0), effects: [S('defUp', 6, 2), DRAW_ALL], chain: { min: 3, effects: [DRAW_ALL] } },
     { id: 't_wall', name: '水の障壁', role: 'tank', element: 'water', cost: 3, priority: P.DEFENSE, target: 'allAllies', stats: st(8, 0, 0), effects: [S('defUp', 4, 3), DRAW_ALL], chain: { min: 3, effects: [S('defUp', 2, 3)] } },
-    { id: 't_rally', name: '号令', role: 'tank', element: 'fire', cost: 2, priority: P.DEFENSE, target: 'allAllies', stats: st(8, 0, 0), effects: [{ type: 'draw', value: 1 }], chain: { min: 2, effects: [{ type: 'draw', value: 1 }] } },
-    { id: 't_scout', name: '戦術指示', role: 'tank', element: 'wind', cost: 2, priority: P.DEFENSE, target: 'ally', stats: st(8, 0, 0), effects: [{ type: 'draw', value: 2 }], chain: { min: 2, effects: [{ type: 'draw', value: 1 }] } },
+    { id: 't_rally', name: '号令', role: 'tank', element: 'fire', cost: 2, priority: P.DEFENSE, target: 'allAllies', stats: st(8, 0, 0), effects: [S('defUp', 2, 2), { type: 'draw', value: 1 }], chain: { min: 2, effects: [{ type: 'draw', value: 1 }] } },
+    { id: 't_scout', name: '戦術指示', role: 'tank', element: 'wind', cost: 2, priority: P.ATTACK, target: 'enemy', stats: st(8, 0, 0), effects: [D_(10), { type: 'draw', value: 2, self: true }], chain: { min: 2, effects: [{ type: 'draw', value: 1, self: true }] } },
     { id: 't_insight', name: '戦況把握', role: 'tank', element: 'light', cost: 3, priority: P.DEFENSE, target: 'allAllies', stats: st(8, 0, 0), effects: [S('defUp', 3, 2), DRAW_ALL], chain: { min: 2, effects: [DRAW_ALL] } },
     { id: 't_counter', name: '迎え撃ち', role: 'tank', element: 'wind', cost: 3, priority: P.DEFENSE, target: 'enemy', stats: st(9, 1, 0), effects: [D_(8), { ...S('defUp', 6, 2), self: true }], chain: { min: 3, effects: [{ ...S('defUp', 4, 2), self: true }] } },
     { id: 't_dark_guard', name: '影の守り', role: 'tank', element: 'dark', cost: 3, priority: P.DEFENSE, target: 'ally', stats: st(9, 0, 0), effects: [S('defUp', 12, 2), DRAW_ALL], chain: { min: 2, effects: [S('defUp', 4, 2)] } },
-    { id: 't_command', name: '総指揮', role: 'tank', element: 'fire', cost: 4, priority: P.DEFENSE, target: 'allAllies', stats: st(8, 0, 0), effects: [{ type: 'draw', value: 2 }], chain: { min: 3, effects: [S('defUp', 4, 2)] } },
+    { id: 't_command', name: '総指揮', role: 'tank', element: 'fire', cost: 4, priority: P.DEFENSE, target: 'allAllies', stats: st(8, 0, 0), effects: [S('defUp', 4, 2), { type: 'draw', value: 2 }], chain: { min: 3, effects: [S('defUp', 4, 2)] } },
     { id: 't_fortress', name: '城壁', role: 'tank', element: 'wind', cost: 5, priority: P.DEFENSE, target: 'allAllies', stats: st(8, 0, 0), effects: [S('defUp', 7, 2), DRAW_ALL], chain: { min: 3, effects: [DRAW_ALL] } },
-    { id: 't_unique', name: '不落の城塞', role: 'tank', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 5, priority: P.DEFENSE, target: 'self', unique: true, stats: st(0, 0, 0), effects: [S('taunt', 10, 2), { ...S('defUp', 2, 2), allAllies: true }], chain: { min: 4, effects: [S('taunt', 30, 2), { ...S('defUp', 6, 2), allAllies: true }] } },
+    { id: 't_unique', name: '不落の城塞', role: 'tank', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 5, priority: P.DEFENSE, target: 'self', unique: true, gauge: 3, stats: st(0, 0, 0), effects: [S('taunt', 10, 2), { ...S('defUp', 2, 2), allAllies: true }], chain: { min: 4, effects: [S('taunt', 30, 2), { ...S('defUp', 6, 2), allAllies: true }] } },
+    { id: 't_unique1', name: '鉄壁の構え', role: 'tank', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 2, priority: P.DEFENSE, target: 'self', unique: true, gauge: 1, stats: st(0, 0, 0), effects: [S('taunt', 10, 2), { ...S('defUp', 4, 2), allAllies: true }], chain: { min: 4, effects: [{ ...S('defUp', 6, 2), allAllies: true }] } },
+    { id: 't_unique2', name: '守護結界', role: 'tank', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 3, priority: P.DEFENSE, target: 'allAllies', unique: true, gauge: 2, stats: st(0, 0, 0), effects: [S('defUp', 2, 2), { type: 'draw', value: 4 }], chain: { min: 4, effects: [S('defUp', 4, 2)] } },
 
     // ---- ヒーラー（攻撃しない。攻撃しながら回復するものだけ例外） ----
     { id: 'h_heal', name: '癒しの光', role: 'healer', element: 'light', cost: 2, priority: P.HEAL, target: 'ally', stats: st(5, 0, 2), effects: [H_(10)], chain: { min: 2, effects: [H_(6)] } },
@@ -181,7 +187,7 @@
     { id: 't_r_flame_oath', name: '炎帝の誓い', role: 'tank', element: 'fire', rarity: 'rare', cost: 2, priority: P.DEFENSE, target: 'self', stats: st(18, 1, 0), effects: [S('taunt', 30, 2)], chain: { min: 2, effects: [S('taunt', 10, 2)] } },
     { id: 't_r_war_horn', name: '戦の角笛', role: 'tank', element: 'fire', rarity: 'rare', cost: 3, priority: P.DEFENSE, target: 'allAllies', stats: st(17, 0, 0), effects: [S('defUp', 3, 2), DRAW_ALL], chain: { min: 2, effects: [DRAW_ALL] } },
     { id: 't_r_gale_guard', name: '風の守護陣', role: 'tank', element: 'wind', rarity: 'rare', cost: 3, priority: P.DEFENSE, target: 'allAllies', stats: st(17, 0, 0), effects: [S('defUp', 4, 3), DRAW_ALL], chain: { min: 3, effects: [S('defUp', 2, 3)] } },
-    { id: 't_r_tactics', name: '疾風の采配', role: 'tank', element: 'wind', rarity: 'rare', cost: 2, priority: P.DEFENSE, target: 'ally', stats: st(17, 0, 0), effects: [{ type: 'draw', value: 2 }], chain: { min: 2, effects: [{ type: 'draw', value: 1 }] } },
+    { id: 't_r_tactics', name: '疾風の采配', role: 'tank', element: 'wind', rarity: 'rare', cost: 2, priority: P.ATTACK, target: 'enemy', stats: st(17, 0, 0), effects: [D_(14), { type: 'draw', value: 2, self: true }], chain: { min: 2, effects: [{ type: 'draw', value: 1, self: true }] } },
     { id: 't_r_coral', name: '珊瑚の盾', role: 'tank', element: 'water', rarity: 'rare', cost: 2, priority: P.DEFENSE, target: 'ally', stats: st(18, 0, 0), effects: [S('defUp', 10, 2), DRAW_ALL], chain: { min: 2, effects: [S('defUp', 4, 2)] } },
     { id: 't_r_radiant', name: '光輝の盾陣', role: 'tank', element: 'light', rarity: 'rare', cost: 4, priority: P.DEFENSE, target: 'allAllies', stats: st(17, 0, 0), effects: [S('defUp', 7, 2), DRAW_ALL], chain: { min: 3, effects: [DRAW_ALL] } },
     { id: 't_r_shadow_wall', name: '影鉄の壁', role: 'tank', element: 'dark', rarity: 'rare', cost: 4, priority: P.DEFENSE, target: 'self', stats: st(19, 1, 0), effects: [S('taunt', 35, 3)], chain: { min: 2, effects: [S('taunt', 10, 3)] } },
@@ -196,7 +202,9 @@
     { id: 'h_r_moon', name: '月光の契約', role: 'healer', element: 'dark', rarity: 'rare', cost: 2, priority: P.BUFF, target: 'ally', stats: st(12, 0, 3), effects: [S('dmgUp', 5, 2)], chain: { min: 2, effects: [S('dmgUp', 3, 2)] } },
     { id: 'h_r_night_mend', name: '夜想の癒し', role: 'healer', element: 'dark', rarity: 'rare', cost: 3, priority: P.HEAL, target: 'ally', stats: st(12, 0, 4), effects: [H_(9), S('regen', 3, 2)], chain: { min: 2, effects: [S('regen', 2, 2)] } },
 
-    { id: 'h_unique', name: '女神の加護', role: 'healer', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 5, priority: P.HEAL, target: 'allAllies', unique: true, stats: st(0, 0, 0), effects: [H_(6), S('atkUp', 1, 2)], chain: { min: 4, effects: [H_(12), S('atkUp', 3, 2)] } },
+    { id: 'h_unique', name: '女神の加護', role: 'healer', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 5, priority: P.HEAL, target: 'allAllies', unique: true, gauge: 3, stats: st(0, 0, 0), effects: [H_(6), S('atkUp', 1, 2)], chain: { min: 4, effects: [H_(12), S('atkUp', 3, 2)] } },
+    { id: 'h_unique1', name: '女神の息吹', role: 'healer', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 2, priority: P.HEAL, target: 'allAllies', unique: true, gauge: 1, stats: st(0, 0, 0), effects: [H_(8)], chain: { min: 4, effects: [H_(12)] } },
+    { id: 'h_unique2', name: '祝福の光雨', role: 'healer', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 3, priority: P.HEAL, target: 'allAllies', unique: true, gauge: 2, stats: st(0, 0, 0), effects: [H_(4), S('regen', 2, 3)], chain: { min: 4, effects: [H_(6), S('regen', 3, 3)] } },
   ];
   // 初期デッキ（各役職10枚。最初の1枚が代表カード）
   const STARTER = {
@@ -215,6 +223,8 @@
       stats: { hp: c.stats.hp + 3, atk: c.stats.atk + (c.stats.atk > 0 ? 1 : 0), heal: c.stats.heal + (c.stats.heal > 0 ? 1 : 0) },
       effects: c.effects.map(upEff), chain: c.chain && { min: c.chain.min, effects: c.chain.effects.map(upEff) } });
   });
+
+  { const sp = CARDS.find(c => c.id === 't_scout_p'); if (sp) sp.effects[0].value = 12; }
 
   // ---- 名声カード：使うと、選んだカードの名声を上げられる。戦闘ではほぼ役に立たない（9コストで1ダメージ）。どの役職のデッキにも入る ----
   [1, 5, 10].forEach(n => CARDS.push({ id: 'fame_' + n, name: `名声の書・${n}`, role: 'any', element: 'light', rarity: 'item', fameValue: n,
@@ -396,13 +406,19 @@
   const QUEST_DIFFS = ['easy', 'normal', 'hard'];
   const QUEST_DIFF_NAME = { easy: '簡単', normal: '普通', hard: '難しい' };
   const QUEST_REWARD = { easy: { kind: 'fameItem', id: 'fame_5' }, normal: { kind: 'fameItem', id: 'fame_10' }, hard: { kind: 'rare' } };
-  // 役職ごとの活躍の目安（1戦あたり。tools/quest_stats.js で測った平均をもとにした値）
+  // 役職の依頼：勝った戦闘の成績を累計する（その役職で戦ったときだけ）。目安は1戦の中央値の約1.5／3／6戦分
   const ROLE_GOAL = {
-    attacker: { key: 'dmg', unit: 'ダメージを与える', easy: 2000, normal: 3500, hard: 4600 },
-    debuffer: { key: 'debuffs', unit: '回デバフを付ける', easy: 15, normal: 22, hard: 28 },
-    tank:     { key: 'tauntPulls', unit: '回、挑発で単体攻撃を引きつける', easy: 3, normal: 5, hard: 7 },
-    healer:   { key: 'heal', unit: '回復する', easy: 250, normal: 400, hard: 600 },
+    attacker: { key: 'dmg', label: 'ダメージ', unit: 'ダメージを与える', easy: 6000, normal: 12000, hard: 25000 },
+    debuffer: { key: 'debuffs', label: 'デバフ', unit: '回デバフを付ける', easy: 30, normal: 65, hard: 130 },
+    tank:     { key: 'draws', label: 'ドロー', unit: '枚、味方にドローさせる', easy: 70, normal: 140, hard: 280 },
+    healer:   { key: 'heal', label: '回復', unit: '回復する', easy: 600, normal: 1200, hard: 2400 },
   };
+  const fmtN = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const roleTpl = (diff) => ({ diff, cumul: true, gen: () => ({ role: pickOf(ROLE_ORDER) }),
+    goal: (p) => ROLE_GOAL[p.role][diff],
+    text: (p) => `${ROLES[p.role].name}で合計${fmtN(ROLE_GOAL[p.role][diff])}${ROLE_GOAL[p.role].unit}（勝った戦闘で累計）`,
+    gain: (c, p) => (c.role === p.role ? (me(c)[ROLE_GOAL[p.role].key] || 0) : 0),
+    check: (c, p) => (c.prog || 0) + (c.role === p.role ? (me(c)[ROLE_GOAL[p.role].key] || 0) : 0) >= ROLE_GOAL[p.role][diff] });
   const stageName = (id) => (STAGES.find(s => s.id === id) || {}).name || id;
   const pickOf = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const DRAGON_STAGE_IDS = () => STAGES.filter(s => s.id.startsWith('dragon_')).map(s => s.id);
@@ -412,20 +428,20 @@
     // ---- 簡単 ----
     e_clear: { diff: 'easy', gen: () => ({ stage: pickOf(STAGES).id }), text: (p) => `${stageName(p.stage)}をクリアする`, check: (c, p) => c.stageId === p.stage },
     e_chain3: { diff: 'easy', gen: () => ({ n: 3 }), text: (p) => `3チェイン以上のカードを1戦で${p.n}回出して勝つ`, check: (c, p) => (me(c).chain3 || 0) >= p.n },
-    e_role: { diff: 'easy', gen: () => ({ role: pickOf(ROLE_ORDER) }), text: (p) => `${ROLES[p.role].name}で1戦に${ROLE_GOAL[p.role].easy}${ROLE_GOAL[p.role].unit}`, check: (c, p) => c.role === p.role && (me(c)[ROLE_GOAL[p.role].key] || 0) >= ROLE_GOAL[p.role].easy },
+    e_role: roleTpl('easy'),
     // ---- 普通 ----
     n_star2: { diff: 'normal', gen: () => ({ stage: pickOf(DRAGON_STAGE_IDS()) }), text: (p) => `${stageName(p.stage)}を★2以上でクリアする`, check: (c, p) => c.stageId === p.stage && c.star >= 2 },
-    n_nodeath: { diff: 'normal', gen: () => ({ stage: pickOf(STAGES).id }), text: (p) => `${stageName(p.stage)}を誰も倒れずにクリアする`, check: (c, p) => c.stageId === p.stage && c.stats.deaths === 0 },
+    n_nodeath: { diff: 'normal', gen: () => ({ stage: pickOf(STAGES).id }), text: (p) => `${stageName(p.stage)}を★2以上・誰も倒れずにクリアする`, check: (c, p) => c.stageId === p.stage && c.star >= 2 && c.stats.deaths === 0 },
     n_parts: { diff: 'normal', gen: () => ({ stage: pickOf(DRAGON_STAGE_IDS()) }), text: (p) => `${stageName(p.stage)}で部位を2つとも壊して勝つ`, check: (c, p) => c.stageId === p.stage && c.stats.partsBroken >= 2 },
-    n_chain4: { diff: 'normal', gen: () => ({ n: 2 }), text: (p) => `4チェインのカードを1戦で${p.n}回出して勝つ`, check: (c, p) => (me(c).chain4 || 0) >= p.n },
-    n_role: { diff: 'normal', gen: () => ({ role: pickOf(ROLE_ORDER) }), text: (p) => `${ROLES[p.role].name}で1戦に${ROLE_GOAL[p.role].normal}${ROLE_GOAL[p.role].unit}`, check: (c, p) => c.role === p.role && (me(c)[ROLE_GOAL[p.role].key] || 0) >= ROLE_GOAL[p.role].normal },
+    n_chain4: { diff: 'normal', gen: () => ({ n: 3 }), text: (p) => `4チェインのカードを1戦で${p.n}回出して勝つ`, check: (c, p) => (me(c).chain4 || 0) >= p.n },
+    n_role: roleTpl('normal'),
     // ---- 難しい ----
-    h_star3: { diff: 'hard', gen: () => ({ stage: pickOf(DRAGON_STAGE_IDS()) }), text: (p) => `${stageName(p.stage)}を★3以上でクリアする`, check: (c, p) => c.stageId === p.stage && c.star >= 3 },
+    h_star3: { diff: 'hard', gen: () => ({ stage: pickOf(DRAGON_STAGE_IDS()) }), text: (p) => `${stageName(p.stage)}を★4以上でクリアする`, check: (c, p) => c.stageId === p.stage && c.star >= 4 },
     h_finish: { diff: 'hard', gen: () => ({ stage: pickOf(DRAGON_STAGE_IDS()) }),
       text: (p) => { const w = weaknessOf(bossOfStage(p.stage).element); return `${stageName(p.stage)}で、${ELEMENTS[w].name}の4チェインのカードでとどめを刺す`; },
       check: (c, p) => { const f = c.stats.finisher; const w = weaknessOf(bossOfStage(p.stage).element); return c.stageId === p.stage && f && f.count >= 4 && f.elements.includes(w); } },
-    h_nodeath2: { diff: 'hard', gen: () => ({ stage: pickOf(DRAGON_STAGE_IDS()) }), text: (p) => `${stageName(p.stage)}を★2以上・誰も倒れずにクリアする`, check: (c, p) => c.stageId === p.stage && c.star >= 2 && c.stats.deaths === 0 },
-    h_role: { diff: 'hard', gen: () => ({ role: pickOf(ROLE_ORDER) }), text: (p) => `${ROLES[p.role].name}で1戦に${ROLE_GOAL[p.role].hard}${ROLE_GOAL[p.role].unit}`, check: (c, p) => c.role === p.role && (me(c)[ROLE_GOAL[p.role].key] || 0) >= ROLE_GOAL[p.role].hard },
+    h_nodeath2: { diff: 'hard', gen: () => ({ stage: pickOf(DRAGON_STAGE_IDS()) }), text: (p) => `${stageName(p.stage)}を★3以上・誰も倒れずにクリアする`, check: (c, p) => c.stageId === p.stage && c.star >= 3 && c.stats.deaths === 0 },
+    h_role: roleTpl('hard'),
   };
   // 新しい依頼を作る（avoid：今持っている依頼。同じ内容は出さない）
   function genQuest(diff, avoid) {
@@ -439,8 +455,13 @@
     const tpl = keys[0]; return { qid: 'q' + Math.random().toString(36).slice(2, 10), tpl, diff, p: QUEST_TPL[tpl].gen() };
   }
   function validQuest(q) { return q && QUEST_TPL[q.tpl] && QUEST_TPL[q.tpl].diff === q.diff && q.p && (!q.p.stage || STAGES.some(s => s.id === q.p.stage)) && (!q.p.role || ROLES[q.p.role]); }
+  function questGoal(q) { try { const T = QUEST_TPL[q.tpl]; return T.cumul ? T.goal(q.p) : 0; } catch { return 0; } }
+  // 累計の依頼の進み具合の表示（例：「ダメージ 2,300 / 6,000」）。累計でない依頼は空文字
+  function questProgressText(q) { const g = questGoal(q); if (!g) return ''; return `${ROLE_GOAL[q.p.role].label} ${fmtN(Math.min(g, q.prog || 0))} / ${fmtN(g)}`; }
+  // この戦闘で累計に足す量（累計の依頼で、勝ったときだけ）
+  function questGain(q, ctx) { try { const T = QUEST_TPL[q.tpl]; return (T.cumul && ctx.victory) ? T.gain(ctx, q.p) : 0; } catch { return 0; } }
   function questText(q) { try { return QUEST_TPL[q.tpl].text(q.p); } catch { return '（不明な依頼）'; } }
-  function questCheck(q, ctx) { try { return !!(ctx.victory && QUEST_TPL[q.tpl].check(ctx, q.p)); } catch { return false; } }
+  function questCheck(q, ctx) { try { return !!(ctx.victory && QUEST_TPL[q.tpl].check({ ...ctx, prog: q.prog || 0 }, q.p)); } catch { return false; } }
 
   // ===== 固有カード =====
   // デッキ10枚とは別の「固有枠」に最大3枚。全属性（どのチェインにも参加し、どの敵の弱点も突く）で基本ステータスなし。
@@ -449,7 +470,20 @@
   const UNIQUE_MAX = 3;
   const STARTER_UNIQUE = { attacker: 'a_unique', debuffer: 'd_unique', tank: 't_unique', healer: 'h_unique' };
   const GAUGE_GAIN = { 2: 1, 3: 2, 4: 4 };
-  const GAUGE_MAX = 26; // うまくチェインすると8ターン目あたりで満タン（tools で測定）
+  const GAUGE_SEG = 9;  // 1区切りの長さ
+  const GAUGE_SEGS = 3; // 区切りの数
+  const GAUGE_MAX = GAUGE_SEG * GAUGE_SEGS; // うまくチェインすると8ターン目あたりで満タン（tools で測定）
+  // 固有カードの入手：竜のステージをどれか1つクリアで1ゲージ、依頼の点数が25点で2ゲージ（4役職ぶん全部）
+  const UNIQUE_BY_GAUGE = (g) => CARDS.filter(c => c.unique && (c.gauge || 3) === g).map(c => c.id);
+  const QUEST_POINTS = { easy: 1, normal: 2, hard: 3 };
+  const QUEST_POINTS_FOR_U2 = 25;
+  // 今のセーブ内容から、持っているべき固有カードを返す（clears：ステージID→最高★、questPts：依頼の点数）
+  function unlockedUniques(clears, questPts) {
+    const ids = UNIQUE_BY_GAUGE(3);
+    if (Object.keys(clears || {}).some(k => k.startsWith('dragon_'))) ids.push(...UNIQUE_BY_GAUGE(1));
+    if ((questPts || 0) >= QUEST_POINTS_FOR_U2) ids.push(...UNIQUE_BY_GAUGE(2));
+    return ids;
+  }
   const isAllElement = (c) => elementsOf(c).length >= ELEMENT_ORDER.length;
   function validUniques(role, list) {
     if (!Array.isArray(list)) return false;
@@ -457,7 +491,21 @@
     return list.every(id => CARD_MAP[id] && CARD_MAP[id].rarity === 'unique' && CARD_MAP[id].role === role);
   }
 
-  const api = { UNIQUE_MAX, STARTER_UNIQUE, GAUGE_GAIN, GAUGE_MAX, isAllElement, validUniques, DANGER, STAR_MAX, dangerOf, dangerFor, dropTable, randomDropTable, QUEST_DIFFS, QUEST_DIFF_NAME, QUEST_REWARD, QUEST_TPL, ROLE_GOAL, genQuest, validQuest, questText, questCheck,
+  // カードの種類を漢字1文字で（最初に書かれた効果で決める）：攻・妨・治・支・防・挑
+  const KIND_NAME = { atk: '攻', debuff: '妨', heal: '治', buff: '支', def: '防', taunt: '挑' };
+  function cardKind(card) {
+    const e = (card && card.effects || [])[0] || {};
+    if (e.type === 'damage') return '攻';
+    if (e.type === 'heal') return '治';
+    if (e.type === 'status') {
+      if (e.status === 'taunt') return '挑';
+      if (e.status === 'defUp') return '防';
+      if (e.status === 'regen') return '治';
+      return STATUS[e.status] && STATUS[e.status].good ? '支' : '妨';
+    }
+    return '支';
+  }
+  const api = { UNIQUE_MAX, cardKind, KIND_NAME, STARTER_UNIQUE, GAUGE_GAIN, GAUGE_MAX, GAUGE_SEG, GAUGE_SEGS, UNIQUE_BY_GAUGE, QUEST_POINTS, QUEST_POINTS_FOR_U2, unlockedUniques, isAllElement, validUniques, DANGER, STAR_MAX, dangerOf, dangerFor, dropTable, randomDropTable, QUEST_DIFFS, QUEST_DIFF_NAME, QUEST_REWARD, QUEST_TPL, ROLE_GOAL, genQuest, validQuest, questText, questCheck, questGoal, questGain, questProgressText,
     RARITY, ALL_RARE, rarePoolOf, DROP_TABLE, RANDOM_DROP_TABLE, STARTER_IDS, ELEMENTS, ELEMENT_ORDER, affinity, elementsOf, chainCountFor, weaknessOf, SYNC_MULT, costMult, ROLES, ROLE_ORDER, STATUS, P, CARDS, CARD_MAP, STARTER,
     DECK_SIZE, HAND_START, HAND_MAX, DRAW_PER_TURN, ENERGY_START, ENERGY_MAX, CRIT_MULT, FAME_MAX, deckStats, fameOf, applyChain, sameSlot, ENEMIES, STAGES, rewardPool };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

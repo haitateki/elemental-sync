@@ -14,6 +14,8 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
 const server = http.createServer((req, res) => {
   let url = decodeURIComponent((req.url || '/').split('?')[0]);
   if (url === '/healthz') { res.writeHead(200); return res.end('ok'); }
+  // Godot版などのクライアント向け：ゲームのデータ（カード・敵・ステージなど）をJSONで渡す
+  if (url === '/api/data') { res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' }); return res.end(JSON.stringify(gameDataJson())); }
   let file;
   if (url.startsWith('/shared/')) file = path.join(ROOT, url);
   else file = path.join(ROOT, 'public', url === '/' ? 'index.html' : url);
@@ -25,6 +27,21 @@ const server = http.createServer((req, res) => {
     res.end(data);
   });
 });
+
+// JSONにできる部分だけをまとめる（関数は含めない）
+let _gameDataCache = null;
+function gameDataJson() {
+  if (_gameDataCache) return _gameDataCache;
+  _gameDataCache = {
+    ELEMENTS: D.ELEMENTS, ELEMENT_ORDER: D.ELEMENT_ORDER, ROLES: D.ROLES, ROLE_ORDER: D.ROLE_ORDER, STATUS: D.STATUS,
+    CARDS: D.CARDS.map(c => ({ ...c, kind: D.cardKind(c) })), STARTER: D.STARTER, STARTER_UNIQUE: D.STARTER_UNIQUE, STAGES: D.STAGES, ENEMIES: D.ENEMIES,
+    RARITY: D.RARITY, DANGER: D.DANGER, STAR_MAX: D.STAR_MAX, QUEST_DIFFS: D.QUEST_DIFFS, QUEST_DIFF_NAME: D.QUEST_DIFF_NAME, QUEST_REWARD: D.QUEST_REWARD,
+    SYNC_MULT: D.SYNC_MULT, DECK_SIZE: D.DECK_SIZE, UNIQUE_MAX: D.UNIQUE_MAX, FAME_MAX: D.FAME_MAX, GAUGE_MAX: D.GAUGE_MAX,
+    HAND_START: D.HAND_START, HAND_MAX: D.HAND_MAX, ENERGY_START: D.ENERGY_START, ENERGY_MAX: D.ENERGY_MAX,
+    GAUGE_SEG: D.GAUGE_SEG, GAUGE_SEGS: D.GAUGE_SEGS, QUEST_POINTS: D.QUEST_POINTS, QUEST_POINTS_FOR_U2: D.QUEST_POINTS_FOR_U2, CRIT_MULT: D.CRIT_MULT, ROLE_GOAL: D.ROLE_GOAL,
+  };
+  return _gameDataCache;
+}
 
 const wss = new WebSocketServer({ server });
 const rooms = new Map();      // code -> room
@@ -48,14 +65,33 @@ function maxStarOf(room, stageId) {
   return Math.max(1, Math.min(D.STAR_MAX, cleared + 1));
 }
 function roomPublic(room) {
-  return { code: room.code, hostId: room.hostId, timer: room.timer, stageId: room.stageId, star: room.star || 1, maxStar: maxStarOf(room, room.stageId),
-    slots: room.slots.map(s => s && { playerId: s.playerId, name: s.name, role: s.role, connected: s.connected, leader: s.leader || null, fame: s.fame || 0, quests: s.quests || [] }),
-    retreat: room.retreat ? { from: room.retreat.from, yes: [...room.retreat.yes] } : null, lastRetreat: room.lastRetreat || 0,
+  return { code: room.code, hostId: room.hostId, stageId: room.stageId, star: room.star || 1, maxStar: maxStarOf(room, room.stageId),
+    slots: room.slots.map(s => s && { playerId: s.playerId, name: s.name, role: s.role, connected: s.connected, leader: s.leader || null, fame: s.fame || 0, quests: (s.quests || []).map(q => ({ ...q, text: D.questText(q), progress: D.questProgressText(q) })), hasFace: !!s.face }),
+    retreat: room.retreat ? { from: room.retreat.from, yes: [...room.retreat.yes], kind: room.retreat.kind || 'retreat' } : null, lastRetreat: room.lastRetreat || 0, lastRestart: room.lastRestart || 0,
     retry: [...(room.retry || [])], members: [...(room.members || [])], ended: !!(room.battle && (room.battle.phase === 'victory' || room.battle.phase === 'defeat')),
     inBattle: !!room.battle };
 }
 // クライアントから届いた依頼（3つまで・形式チェック）
-function cleanQuests(qs) { return Array.isArray(qs) ? qs.filter(D.validQuest).slice(0, 3).map(q => ({ qid: String(q.qid).slice(0, 20), tpl: q.tpl, diff: q.diff, p: q.p })) : []; }
+function cleanQuests(qs) { return Array.isArray(qs) ? qs.filter(D.validQuest).slice(0, 3).map(q => { const o = { qid: String(q.qid).slice(0, 20), tpl: q.tpl, diff: q.diff, p: q.p }; const g = D.questGoal(o); if (g) o.prog = Math.max(0, Math.min(g, Math.floor(+q.prog || 0))); return o; }) : []; }
+// 顔グラ：192×192のPNG（base64）。サーバーは中継するだけで保存しない（部屋がなくなれば消える）
+const FACE_MAX = 300 * 1024;
+// ホストの4役職ぶんのデッキ（空いた席のAIが使う）。正しくない役職は入れない＝初期デッキを使う
+function cleanAiDecks(o) {
+  const out = {};
+  if (!o || typeof o !== 'object') return out;
+  for (const r of D.ROLE_ORDER) {
+    const v = o[r];
+    if (!v || !validDeck(r, v.deck, v.leader)) continue;
+    out[r] = { deck: v.deck.slice(), leader: v.leader, uniques: D.validUniques(r, v.uniques) && v.uniques.length ? v.uniques.slice() : [D.STARTER_UNIQUE[r]] };
+  }
+  return out;
+}
+function cleanFace(f) { return (typeof f === 'string' && f.length <= FACE_MAX && /^[A-Za-z0-9+/=]+$/.test(f)) ? f : null; }
+function sendFaces(room, toId) {
+  // toId を省略すると全員に、全員分を送る
+  const faces = {}; room.slots.forEach(s => { if (s && s.face) faces[s.playerId] = s.face; });
+  for (const s of room.slots) if (s && (!toId || s.playerId === toId)) sendTo(s.playerId, { type: 'faces', faces });
+}
 function cleanClears(c) { const o = {}; if (c && typeof c === 'object') for (const s of D.STAGES) if (c[s.id]) o[s.id] = Math.max(0, Math.min(D.STAR_MAX, c[s.id] | 0)); return o; }
 function broadcastRoom(room) {
   for (const s of room.slots) if (s) sendTo(s.playerId, { type: 'room', room: roomPublic(room), you: s.playerId });
@@ -117,14 +153,10 @@ function aiReplan(room) {
   for (const p of b.players) if (p.isAI) planAI(b, p.slot);
 }
 
+// 制限時間はない：ターンは生きている人間全員が確定したときだけ進む（checkAllConfirmed）
 function scheduleDeadline(room) {
   clearTimeout(room.timerHandle);
   room.deadline = null;
-  if (!room.battle || room.battle.phase !== 'planning') return;
-  if (room.timer > 0) {
-    room.deadline = Date.now() + (room.animMs || 0) + room.timer * 1000;
-    room.timerHandle = setTimeout(() => resolve(room), room.deadline - Date.now());
-  }
 }
 
 function resolve(room) {
@@ -144,15 +176,21 @@ function resolve(room) {
   // 人間が全員倒れているときは、演出が終わったら次のターンも自動で進める
   if (b.phase === 'planning' && !b.players.some(p => !p.isAI && p.alive)) {
     clearTimeout(room.autoHandle);
-    room.autoHandle = setTimeout(() => { if (room.battle === b) resolve(room); }, room.animMs || 1500);
+    room.autoHandle = setTimeout(() => { if (room.battle === b) resolve(room); }, (room.animMs || 1500) * 2); // 演出は標準で今までの2倍の時間
   }
 }
-// 撤退：つながっている人間全員が賛成したら、報酬なしでロビーに戻る
+// 撤退・やり直し：つながっている人間全員が賛成したら、報酬なしでロビーに戻る（やり直しは同じステージ・★で1ターン目から）
 function checkRetreat(room) {
   const rt = room.retreat; if (!rt || !room.battle) return false;
   const humans = room.slots.filter(s => s && s.connected && room.members.has(s.playerId));
   if (humans.length && humans.every(s => rt.yes.has(s.playerId))) {
     clearTimeout(room.timerHandle); clearTimeout(room.autoHandle);
+    if (rt.kind === 'restart') {
+      // その戦闘で手に入れた報酬・依頼の進み具合は、戦闘の終わりに受け取る仕組みなので、作り直せば何も残らない
+      room.retreat = null; room.lastRestart = Date.now();
+      room.slots.forEach((s, i) => { if (s && !s.connected) room.slots[i] = null; });
+      startBattle(room); return true;
+    }
     room.battle = null; room.deadline = null; room.retry = new Set(); room.members = new Set(); room.retreat = null;
     room.lastRetreat = Date.now();
     room.slots.forEach((s, i) => { if (s && !s.connected) room.slots[i] = null; });
@@ -232,8 +270,14 @@ function rollVictory(room) {
     const qs = slotInfo && slotInfo.quests || [];
     const ctx = { victory: true, stageId: b.stageId, star: b.star, turns: b.turn, stats: b.stats, slot: p.slot, role: p.role };
     b.questResults[p.slot] = [];
+    b.questProgress = b.questProgress || {};
+    b.questProgress[p.slot] = [];
     for (const q of qs) {
-      if (!D.questCheck(q, ctx)) continue;
+      if (!D.questCheck(q, ctx)) {
+        const gain = D.questGain(q, ctx); // 累計の依頼：達成していなければ進み具合だけ更新
+        if (gain > 0) { q.prog = Math.min(D.questGoal(q), (q.prog || 0) + gain); b.questProgress[p.slot].push({ qid: q.qid, prog: q.prog }); }
+        continue;
+      }
       const rw = D.QUEST_REWARD[q.diff];
       let it;
       if (rw.kind === 'rare') { const qs2 = q.p.stage ? D.STAGES.find(s => s.id === q.p.stage) : null; const rpool = (qs2 && D.rarePoolOf(qs2).length) ? D.rarePoolOf(qs2) : D.ALL_RARE; it = { id: pick(rpool), kind: 'rare' }; }
@@ -259,10 +303,17 @@ function checkAllConfirmed(room) {
 function startBattle(room) {
   const used = new Set(room.slots.filter(Boolean).map(s => s.role));
   const freeRoles = D.ROLE_ORDER.filter(r => !used.has(r));
+  const host = room.slots.find(s => s && s.playerId === room.hostId);
   const players = [];
   room.slots.forEach((s, i) => {
     if (s) players.push({ slot: i, name: s.name, role: s.role, isAI: false, deck: s.deck, leader: s.leader, uniques: s.uniques });
-    else { const role = freeRoles.shift(); players.push({ slot: i, name: AI_NAMES[i], role, isAI: true, deck: D.STARTER[role], leader: D.STARTER[role][0] }); }
+    else {
+      // 空いた席のAI：ホストのその役職のデッキ（固有カードも）を使う。なければ初期デッキ
+      const role = freeRoles.shift();
+      const hd = host && host.aiDecks && host.aiDecks[role];
+      players.push(hd ? { slot: i, name: AI_NAMES[i], role, isAI: true, deck: hd.deck, leader: hd.leader, uniques: hd.uniques }
+        : { slot: i, name: AI_NAMES[i], role, isAI: true, deck: D.STARTER[role], leader: D.STARTER[role][0] });
+    }
   });
   room.star = Math.min(room.star || 1, maxStarOf(room, room.stageId));
   room.battle = B.createBattle(room.stageId, players, { star: room.star });
@@ -284,23 +335,22 @@ function handle(ws, playerId, msg) {
     case 'create': {
       if (room) leaveRoom(playerId);
       const code = genCode();
-      const timer = [0, 30, 60, 90, 120].includes(msg.timer) ? msg.timer : 0;
-      const r = { code, hostId: playerId, timer, stageId: D.STAGES[0].id, star: 1, slots: [null, null, null, null], battle: null, retry: new Set(), members: new Set(), origHostId: null };
-      r.slots[0] = { playerId, name: String(msg.name || 'プレイヤー').slice(0, 12), role: null, deck: null, connected: true, quests: cleanQuests(msg.quests), clears: cleanClears(msg.clears) };
+      const r = { code, hostId: playerId, stageId: D.STAGES[0].id, star: 1, slots: [null, null, null, null], battle: null, retry: new Set(), members: new Set(), origHostId: null };
+      r.slots[0] = { playerId, name: String(msg.name || 'プレイヤー').slice(0, 12), role: null, deck: null, connected: true, quests: cleanQuests(msg.quests), clears: cleanClears(msg.clears), face: cleanFace(msg.face), aiDecks: cleanAiDecks(msg.aiDecks) };
       rooms.set(code, r);
-      return broadcastRoom(r);
+      broadcastRoom(r); return sendFaces(r);
     }
     case 'join': {
       const code = String(msg.code || '').toUpperCase().trim();
       const r = rooms.get(code);
       if (!r) return err('ルームが見つかりません');
-      if (r.slots.some(s => s && s.playerId === playerId)) { r.slots.find(s => s.playerId === playerId).connected = true; broadcastRoom(r); if (r.battle) broadcastBattle(r); return; }
+      if (r.slots.some(s => s && s.playerId === playerId)) { const sl = r.slots.find(s => s.playerId === playerId); sl.connected = true; if (msg.face !== undefined) sl.face = cleanFace(msg.face); broadcastRoom(r); sendFaces(r); if (r.battle) broadcastBattle(r); return; }
       if (r.battle && !(r.battle.phase === 'victory' || r.battle.phase === 'defeat')) return err('このルームは戦闘中です');
       const i = r.slots.findIndex(s => !s);
       if (i < 0) return err('ルームが満員です');
       if (room) leaveRoom(playerId);
-      r.slots[i] = { playerId, name: String(msg.name || 'プレイヤー').slice(0, 12), role: null, deck: null, connected: true, quests: cleanQuests(msg.quests), clears: cleanClears(msg.clears) };
-      return broadcastRoom(r);
+      r.slots[i] = { playerId, name: String(msg.name || 'プレイヤー').slice(0, 12), role: null, deck: null, connected: true, quests: cleanQuests(msg.quests), clears: cleanClears(msg.clears), face: cleanFace(msg.face), aiDecks: cleanAiDecks(msg.aiDecks) };
+      broadcastRoom(r); return sendFaces(r);
     }
     case 'leave': leaveRoom(playerId); return send(ws, { type: 'left' });
   }
@@ -340,6 +390,7 @@ function handle(ws, playerId, msg) {
       if (msg.quests) me.quests = cleanQuests(msg.quests);
       if (msg.clears) me.clears = cleanClears(msg.clears);
       if (msg.fame != null) me.fame = Math.max(0, Math.min(D.FAME_MAX, Math.floor(+msg.fame || 0)));
+      if (msg.aiDecks) me.aiDecks = cleanAiDecks(msg.aiDecks);
       if (isHost) room.star = Math.min(room.star || 1, maxStarOf(room, room.stageId));
       return broadcastRoom(room);
     }
@@ -354,10 +405,11 @@ function handle(ws, playerId, msg) {
       if (checkRetry(room)) return;
       return broadcastRoom(room);
     }
-    case 'setTimer':
-      if (!isHost || room.battle) return;
-      room.timer = [0, 30, 60, 90, 120].includes(msg.timer) ? msg.timer : 0;
-      return broadcastRoom(room);
+    case 'setFace': {
+      me.face = cleanFace(msg.face);
+      broadcastRoom(room);
+      return sendFaces(room);
+    }
     case 'start':
       if (!isHost) return err('開始できるのはホストだけです');
       if (room.battle) return;
@@ -367,7 +419,7 @@ function handle(ws, playerId, msg) {
       // カードを選んで対象を迷っている途中の状態（ほかの人に見せるだけ。判定には使わない）
       const b = room.battle; if (!b || b.phase !== 'planning') return;
       const p = B.getPlayer(b, slotIdx); if (!p || !p.alive) return;
-      const cardId = msg.uid && p.hand.includes(msg.uid) ? b.cards[msg.uid] : null;
+      const cardId = msg.uid && (p.hand.includes(msg.uid) || (p.uniques || []).includes(msg.uid)) ? b.cards[msg.uid] : null;
       p.selecting = cardId ? { cardId, target: Number.isInteger(msg.target) ? msg.target : null } : null;
       return broadcastBattle(room);
     }
@@ -386,7 +438,12 @@ function handle(ws, playerId, msg) {
     case 'retreat': {
       const b = room.battle;
       if (!b || b.phase === 'victory' || b.phase === 'defeat' || !room.members.has(playerId)) return;
-      if (msg.action === 'propose') { if (!room.retreat) room.retreat = { from: me.name, yes: new Set() }; room.retreat.yes.add(playerId); }
+      if (msg.action === 'propose') {
+        const kind = msg.kind === 'restart' ? 'restart' : 'retreat';
+        if (room.retreat && room.retreat.kind !== kind) return err('別の提案が出ています');
+        if (!room.retreat) room.retreat = { from: me.name, yes: new Set(), kind };
+        room.retreat.yes.add(playerId);
+      }
       else if (msg.action === 'yes' && room.retreat) room.retreat.yes.add(playerId);
       else if (msg.action === 'no') room.retreat = null; // 誰か一人でも反対したら取り消し
       if (checkRetreat(room)) return;
@@ -416,12 +473,19 @@ wss.on('connection', (ws) => {
       if (room) {
         room.slots.find(s => s && s.playerId === playerId).connected = true;
         if (room.origHostId === playerId) { room.hostId = playerId; room.origHostId = null; } // 元のホストが戻ってきたらホストを返す
-        broadcastRoom(room); if (room.battle) broadcastBattle(room);
+        broadcastRoom(room); sendFaces(room, playerId); if (room.battle) broadcastBattle(room);
       } else send(ws, { type: 'lobby' });
       return;
     }
     if (!playerId) return;
     if (msg.type === 'ping') return send(ws, { type: 'pong' });
+    // 依頼を作る（Godot版用。ブラウザ版は自分で作る）。diff ごとに1つ、avoid と同じ内容は避ける
+    if (msg.type === 'genQuests') {
+      const avoid = cleanQuests(msg.avoid);
+      const out = (Array.isArray(msg.diffs) ? msg.diffs : []).filter(d => D.QUEST_DIFFS.includes(d)).slice(0, 3).map(d => { const q = D.genQuest(d, avoid); avoid.push(q); return { ...q, text: D.questText(q), progress: D.questProgressText(q) }; });
+      return send(ws, { type: 'quests', quests: out, reqId: msg.reqId || null });
+    }
+    if (msg.type === 'questTexts') return send(ws, { type: 'questTexts', quests: cleanQuests(msg.quests).map(q => ({ ...q, text: D.questText(q), progress: D.questProgressText(q) })) });
     try { handle(ws, playerId, msg); } catch (e) { console.error(e); send(ws, { type: 'error', msg: 'サーバーでエラーが起きました' }); }
   });
   ws.on('close', () => {

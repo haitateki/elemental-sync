@@ -171,8 +171,8 @@ function planAI(b, slot) {
   if (!p || !p.alive) return;
   for (const r of p.reserved.slice()) { if (!(p.uniques || []).includes(r.uid)) p.hand.push(r.uid); p.energy += D.CARD_MAP[b.cards[r.uid]].cost; }
   p.reserved = []; p.confirmed = false;
-  // 固有ゲージが満タンなら、固有カードも候補に入れる（1ターンに1枚まで）
-  const uq = p.gauge >= p.gaugeMax ? (p.uniques || []) : [];
+  // 固有ゲージが足りる固有カードも候補に入れる（1ターンに1枚まで）
+  const uq = (p.uniques || []).filter(u => (p.gauge || 0) >= (D.CARD_MAP[b.cards[u]].gauge || D.GAUGE_SEGS) * D.GAUGE_SEG);
   const hand = p.hand.concat(uq);
   const n = hand.length;
   let best = { score: -1e9, set: [] };

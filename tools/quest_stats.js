@@ -4,7 +4,7 @@ const D = require('../shared/data'); const B = require('../server/battle');
 const DK = require('./decks'); const ST = require('./strategies');
 const N = +process.argv[2] || 60;
 const stages = process.argv.slice(3).length ? process.argv.slice(3) : D.STAGES.map(s => s.id);
-const keys = { attacker: 'dmg', debuffer: 'debuffs', tank: 'tauntPulls', healer: 'heal' };
+const keys = { attacker: 'dmg', debuffer: 'debuffs', tank: 'draws', healer: 'heal' };
 const acc = {}; D.ROLE_ORDER.forEach(r => (acc[r] = []));
 for (const sid of stages) {
   const st = D.STAGES.find(x => x.id === sid); const el = D.ENEMIES[st.boss].element; const W = D.weaknessOf(el);

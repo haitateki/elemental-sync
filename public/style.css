@@ -334,3 +334,6 @@ ul.quests li { margin: 3px 0; line-height: 1.4; }
 .retreat-box { position: fixed; left: 50%; top: 56px; transform: translateX(-50%); z-index: 46; background: #2a1420; box-shadow: 0 0 0 2px #ff8a8a, 0 6px 18px rgba(0,0,0,.6); padding: 10px 16px; text-align: center; max-width: 460px; }
 .retreat-box .row { justify-content: center; gap: 8px; margin-top: 6px; display: flex; }
 .retreat-box.hidden { display: none; }
+
+.unit .u-gauge u { position: absolute; top: -1px; bottom: -1px; width: 2px; background: #000; z-index: 1; }
+.q-prog { margin-left: 6px; font-size: 11px; color: #9fe8ff; white-space: nowrap; }

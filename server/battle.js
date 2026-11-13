@@ -28,7 +28,7 @@ function makeEnemy(defId, parent) {
 // players: [{slot, name, role, isAI, deck:[cardId], leader}]
 // opts.star：危険度（1〜5）
 let battleCounter = 1;
-function newPStats() { return { dmg: 0, heal: 0, buffs: 0, debuffs: 0, draws: 0, chain3: 0, chain4: 0, maxChain: 0, tauntPulls: 0, tanked: 0, cards: 0 }; }
+function newPStats() { return { dmg: 0, heal: 0, buffs: 0, debuffs: 0, draws: 0, rawTaken: 0, taken: 0, chain3: 0, chain4: 0, maxChain: 0, tauntPulls: 0, tanked: 0, cards: 0 }; }
 function createBattle(stageId, players, opts) {
   const stage = D.STAGES.find(s => s.id === stageId) || D.STAGES[0];
   const star = Math.max(1, Math.min(D.STAR_MAX, (opts && opts.star) | 0 || 1));
@@ -111,7 +111,8 @@ function reserve(b, slot, uid, target) {
   const idx = p.hand.indexOf(uid);
   if (!isUnique && idx < 0) return 'そのカードは手札にありません';
   if (isUnique) {
-    if (p.gauge < p.gaugeMax) return '固有ゲージがたまっていません';
+    const need = (D.CARD_MAP[b.cards[uid]].gauge || D.GAUGE_SEGS) * D.GAUGE_SEG; // 必要な区切りの分だけ
+    if ((p.gauge || 0) < need) return '固有ゲージが足りません';
     if (p.reserved.some(r => p.uniques.includes(r.uid))) return '固有カードは1ターンに1枚までです';
   }
   const card = D.CARD_MAP[b.cards[uid]];
@@ -162,12 +163,12 @@ function syncMult(n) { return D.SYNC_MULT[Math.min(n, 4)] || 1; }
 
 // 与ダメージ =（（（カードの数値＋攻撃力）×チェイン倍率 − 敵の防御力）×属性相性）＋与ダメージアップ＋被ダメージアップ
 // クリティカルなら×1.5、最後にコスト倍率（4コスト×1.2、5コスト×1.5）
-function calcPlayerDamage(base, mult, src, enemy, element, crit, cost) {
+function calcPlayerDamage(base, mult, src, enemy, element, crit, cost, critMult) {
   const atk = Math.max(0, src.atk + sumStatus(src, 'atkUp') - sumStatus(src, 'atkDown')); // 攻撃力ダウン（危険度の呪い）も反映
   const def = Math.max(0, enemy.def - sumStatus(enemy, 'defDown'));
   let d = Math.max(0, Math.floor((base + atk) * mult) - def); // チェイン倍率の端数は切り捨て
   d = d * D.affinity(element, enemy.element) + sumStatus(src, 'dmgUp') + sumStatus(enemy, 'vulnUp');
-  if (crit) d *= D.CRIT_MULT;
+  if (crit) d *= D.CRIT_MULT * (critMult || 1); // 固有カードの一部は会心時にさらに専用の倍率
   d *= D.costMult(cost || 2); // コスト倍率は最終威力にかける
   return Math.max(0, Math.floor(d));
 }
@@ -199,9 +200,10 @@ function resolveTurn(b) {
   events.push({ t: 'sync', counts });
 
   const actions = [];
-  const usedUnique = new Set();
+  const usedUnique = new Map(); // slot → 使った区切りの数
   for (const p of b.players) p.reserved.forEach((r, i) => actions.push({ p, r, card: D.CARD_MAP[b.cards[r.uid]], order: i }));
-  actions.sort((a, b2) => (b2.card.priority - a.card.priority) || (a.p.slot - b2.p.slot) || (a.order - b2.order));
+  const roleRank = (pl) => { const k = D.ROLE_ORDER.indexOf(pl.role); return k < 0 ? 9 : k; };
+  actions.sort((a, b2) => (b2.card.priority - a.card.priority) || (roleRank(a.p) - roleRank(b2.p)) || (a.p.slot - b2.p.slot) || (a.order - b2.order));
 
   for (const { p, r, card } of actions) {
     if (!p.alive) continue;
@@ -212,7 +214,7 @@ function resolveTurn(b) {
     const ps = b.stats.p[p.slot] || (b.stats.p[p.slot] = newPStats());
     ps.cards++; ps.maxChain = Math.max(ps.maxChain, n); if (n >= 3) ps.chain3++; if (n >= 4) ps.chain4++;
     // 固有ゲージ：固有カード以外のカードがチェインに入るとたまる。固有カードを使ったらそのターンの終わりに0へ
-    if ((p.uniques || []).includes(r.uid)) usedUnique.add(p.slot);
+    if ((p.uniques || []).includes(r.uid)) usedUnique.set(p.slot, card.gauge || D.GAUGE_SEGS);
     else if (D.GAUGE_GAIN[Math.min(n, 4)]) p.gauge = Math.min(p.gaugeMax, (p.gauge || 0) + D.GAUGE_GAIN[Math.min(n, 4)]);
 
     let targets;
@@ -234,7 +236,7 @@ function resolveTurn(b) {
         const o = tg.obj; if (!o.alive) continue;
         const idx = tg.side === 'e' ? b.enemies.indexOf(o) : o.slot;
         if (ef.type === 'damage' && tg.side === 'e') {
-          const amt = ef.flat ? ef.value : calcPlayerDamage(ef.value, mult, p, o, D.elementsOf(card), crit, card.cost); // flat：攻撃力や倍率の影響を受けない固定ダメージ
+          const amt = ef.flat ? ef.value : calcPlayerDamage(ef.value, mult, p, o, D.elementsOf(card), crit, card.cost, card.critMult); // flat：攻撃力や倍率の影響を受けない固定ダメージ
           const hb = o.hp;
           o.hp = Math.max(0, o.hp - amt);
           ps.dmg += hb - o.hp;
@@ -269,6 +271,7 @@ function resolveTurn(b) {
     const hit = (pl, raw) => {
       const amt = calcTaken(raw, pl);
       pl.hp = Math.max(0, pl.hp - amt);
+      const pst = b.stats.p[pl.slot]; if (pst) { pst.rawTaken += Math.max(0, raw); pst.taken += amt; } // 受けた攻撃（軽減前）と実際に受けたダメージ
       if (sumStatus(pl, 'taunt') > 0 && b.stats.p[pl.slot]) b.stats.p[pl.slot].tanked += amt;
       events.push({ t: 'damage', side: 'p', i: pl.slot, amount: amt, hp: pl.hp, element: e.element, raw });
       if (pl.hp <= 0 && pl.alive) { pl.alive = false; b.stats.deaths++; events.push({ t: 'death', side: 'p', i: pl.slot }); return; }
@@ -321,7 +324,7 @@ function resolveTurn(b) {
   b.enemies.forEach((e, i) => tick(e, 'e', i));
 
   for (const p of b.players) {
-    if (usedUnique.has(p.slot)) p.gauge = 0;
+    if (usedUnique.has(p.slot)) p.gauge = Math.max(0, (p.gauge || 0) - usedUnique.get(p.slot) * D.GAUGE_SEG); // 使った区切りの分だけ減る
     events.push({ t: 'gauge', slot: p.slot, value: p.gauge || 0, max: p.gaugeMax || D.GAUGE_MAX });
     p.discard.push(...p.reserved.filter(r => !(p.uniques || []).includes(r.uid)).map(r => r.uid)); p.reserved = [];
   }

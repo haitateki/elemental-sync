@@ -20,11 +20,6 @@
       <div class="panel">
         <label>なまえ <input id="in-name" maxlength="12" placeholder="なまえ"></label>
         <div class="row">
-          <label>予約の制限時間
-            <select id="in-timer">
-              <option value="0">なし</option><option value="30">30秒</option><option value="60" selected>60秒</option><option value="90">90秒</option><option value="120">120秒</option>
-            </select>
-          </label>
           <button id="btn-create" class="btn primary">ルームを作る</button>
         </div>
         <div class="row">
@@ -68,7 +63,7 @@
         <div class="row"><select id="room-stage" class="stage-select"></select><label>危険度 <select id="room-star"></select></label></div>
         <div id="stage-info"></div>
         <div class="row">
-          <label>予約の制限時間 <select id="room-timer"><option value="0">なし</option><option value="30">30秒</option><option value="60">60秒</option><option value="90">90秒</option><option value="120">120秒</option></select></label>
+
           <button id="btn-start" class="btn primary">戦闘開始</button>
         </div>
         <p id="start-hint" class="hint"></p>
@@ -85,6 +80,7 @@
     <div class="battle-top">
       <span id="b-stage"></span><span id="b-turn"></span>
       <span id="b-timer" class="timer"></span>
+      <button id="btn-restart" class="btn small">やり直し</button>
       <button id="btn-retreat" class="btn small">撤退</button>
       <button id="btn-help" class="btn small">ルール</button>
       <button id="btn-log" class="btn small">ログ</button>
