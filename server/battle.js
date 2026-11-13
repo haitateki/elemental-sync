@@ -82,7 +82,8 @@ function chooseIntent(b, e) {
     intent.target = ps.length ? ps[rnd(ps.length)].slot : null;
   }
   const ultIdx = pat.findIndex(a => a.type === 'ultimate');
-  if (ultIdx >= 0) { const cur = e.patternIndex % pat.length; e.doomIn = ((ultIdx - cur + pat.length) % pat.length) + 1; } else e.doomIn = null;
+  // doomIn：0 = このターンに大技を使う、1 = 次のターン、…
+  if (ultIdx >= 0) { const cur = e.patternIndex % pat.length; e.doomIn = (ultIdx - cur + pat.length) % pat.length; } else e.doomIn = null;
   e.intent = intent;
 }
 

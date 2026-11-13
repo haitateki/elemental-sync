@@ -129,7 +129,7 @@ function bestTarget(b, p, card) {
       else {
         sc = D.affinity(D.elementsOf(card), e.element) * 10 - e.def * 0.5;
         if (e.part && D.ENEMIES[e.defId].pattern.some(a => a.type === 'buffBody')) sc += 4;
-        if (!e.part && e.boss) sc += (e.doomIn && e.doomIn <= 2) ? 8 : 2;
+        if (!e.part && e.boss) sc += (e.doomIn != null && e.doomIn <= 1) ? 8 : 2;
         if (isDebuff && !e.part) sc += 5;
         if (e.hp < 25) sc += 6;
       }

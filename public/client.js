@@ -839,7 +839,7 @@
         u.append(r1, r2); ov.appendChild(u); hitbox(ov, 'e', i, pos, e.alive); return;
       }
       if (e.alive && e.intent) u.appendChild(intentEl(e, v));
-      if (e.alive && e.doomIn && e.doomIn > 1) {
+      if (e.alive && e.doomIn && e.doomIn > 0) {
         const ult = D.ENEMIES[e.defId].pattern.find(a => a.type === 'ultimate');
         u.appendChild(h('div', 'doom-tag', `${esc(ult.name)}まで あと${e.doomIn}ターン`));
       }

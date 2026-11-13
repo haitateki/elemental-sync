@@ -113,9 +113,9 @@
     { id: 'd_unique2', name: '蝕みの鎖', role: 'debuffer', element: 'dark', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 3, priority: P.DEBUFF, target: 'allEnemies', unique: true, gauge: 2, stats: st(0, 0, 0), effects: [S('defDown', 2, 2), S('poison', 2, 3)], chain: { min: 4, effects: [S('defDown', 3, 2), S('poison', 3, 3)] } },
 
     // ---- タンク（挑発＋カットはタンクだけ。防御カードには味方全体のドロー+1。攻撃は防御つきのものだけ） ----
-    { id: 't_taunt', name: '挑発', role: 'tank', element: 'fire', cost: 2, priority: P.DEFENSE, target: 'self', stats: st(9, 0, 0), effects: [S('taunt', 25, 2)], chain: { min: 2, effects: [S('taunt', 10, 2)] } },
-    { id: 't_ironwall', name: '不動の構え', role: 'tank', element: 'light', cost: 3, priority: P.DEFENSE, target: 'self', stats: st(9, 0, 0), effects: [S('taunt', 35, 2)], chain: { min: 3, effects: [S('taunt', 15, 2)] } },
-    { id: 't_bulwark', name: '黒鉄の誓い', role: 'tank', element: 'dark', cost: 4, priority: P.DEFENSE, target: 'self', stats: st(8, 1, 0), effects: [S('taunt', 30, 3)], chain: { min: 2, effects: [S('taunt', 10, 3)] } },
+    { id: 't_taunt', name: '挑発', role: 'tank', element: 'fire', cost: 2, priority: P.DEFENSE, target: 'self', stats: st(9, 0, 0), effects: [S('taunt', 25, 1)], chain: { min: 2, effects: [S('taunt', 10, 1)] } },
+    { id: 't_ironwall', name: '不動の構え', role: 'tank', element: 'light', cost: 3, priority: P.DEFENSE, target: 'self', stats: st(9, 0, 0), effects: [S('taunt', 35, 1)], chain: { min: 3, effects: [S('taunt', 15, 1)] } },
+    { id: 't_bulwark', name: '黒鉄の誓い', role: 'tank', element: 'dark', cost: 4, priority: P.DEFENSE, target: 'self', stats: st(8, 1, 0), effects: [S('taunt', 30, 1)], chain: { min: 2, effects: [S('taunt', 10, 1)] } },
     { id: 't_shield', name: '守護の盾', role: 'tank', element: 'water', cost: 2, priority: P.DEFENSE, target: 'ally', stats: st(9, 0, 0), effects: [S('defUp', 8, 2), DRAW_ALL], chain: { min: 2, effects: [S('defUp', 4, 2)] } },
     { id: 't_guard_all', name: '聖域', role: 'tank', element: 'light', cost: 4, priority: P.DEFENSE, target: 'allAllies', stats: st(8, 0, 0), effects: [S('defUp', 6, 2), DRAW_ALL], chain: { min: 3, effects: [DRAW_ALL] } },
     { id: 't_wall', name: '水の障壁', role: 'tank', element: 'water', cost: 3, priority: P.DEFENSE, target: 'allAllies', stats: st(8, 0, 0), effects: [S('defUp', 4, 3), DRAW_ALL], chain: { min: 3, effects: [S('defUp', 2, 3)] } },
@@ -126,8 +126,8 @@
     { id: 't_dark_guard', name: '影の守り', role: 'tank', element: 'dark', cost: 3, priority: P.DEFENSE, target: 'ally', stats: st(9, 0, 0), effects: [S('defUp', 12, 2), DRAW_ALL], chain: { min: 2, effects: [S('defUp', 4, 2)] } },
     { id: 't_command', name: '総指揮', role: 'tank', element: 'fire', cost: 4, priority: P.DEFENSE, target: 'allAllies', stats: st(8, 0, 0), effects: [S('defUp', 4, 2), { type: 'draw', value: 2 }], chain: { min: 3, effects: [S('defUp', 4, 2)] } },
     { id: 't_fortress', name: '城壁', role: 'tank', element: 'wind', cost: 5, priority: P.DEFENSE, target: 'allAllies', stats: st(8, 0, 0), effects: [S('defUp', 7, 2), DRAW_ALL], chain: { min: 3, effects: [DRAW_ALL] } },
-    { id: 't_unique', name: '不落の城塞', role: 'tank', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 5, priority: P.DEFENSE, target: 'self', unique: true, gauge: 3, stats: st(0, 0, 0), effects: [S('taunt', 10, 2), { ...S('defUp', 2, 2), allAllies: true }], chain: { min: 4, effects: [S('taunt', 30, 2), { ...S('defUp', 6, 2), allAllies: true }] } },
-    { id: 't_unique1', name: '鉄壁の構え', role: 'tank', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 2, priority: P.DEFENSE, target: 'self', unique: true, gauge: 1, stats: st(0, 0, 0), effects: [S('taunt', 10, 2), { ...S('defUp', 4, 2), allAllies: true }], chain: { min: 4, effects: [{ ...S('defUp', 6, 2), allAllies: true }] } },
+    { id: 't_unique', name: '不落の城塞', role: 'tank', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 5, priority: P.DEFENSE, target: 'self', unique: true, gauge: 3, stats: st(0, 0, 0), effects: [S('taunt', 10, 1), { ...S('defUp', 2, 2), allAllies: true }], chain: { min: 4, effects: [S('taunt', 30, 1), { ...S('defUp', 6, 2), allAllies: true }] } },
+    { id: 't_unique1', name: '鉄壁の構え', role: 'tank', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 2, priority: P.DEFENSE, target: 'self', unique: true, gauge: 1, stats: st(0, 0, 0), effects: [S('taunt', 10, 1), { ...S('defUp', 4, 2), allAllies: true }], chain: { min: 4, effects: [{ ...S('defUp', 6, 2), allAllies: true }] } },
     { id: 't_unique2', name: '守護結界', role: 'tank', element: 'light', elements: ['fire', 'wind', 'water', 'light', 'dark'], cost: 3, priority: P.DEFENSE, target: 'allAllies', unique: true, gauge: 2, stats: st(0, 0, 0), effects: [S('defUp', 2, 2), { type: 'draw', value: 4 }], chain: { min: 4, effects: [S('defUp', 4, 2)] } },
 
     // ---- ヒーラー（攻撃しない。攻撃しながら回復するものだけ例外） ----
@@ -150,7 +150,7 @@
     { id: 'd_miasma', name: '瘴気の霧', role: 'debuffer', element: 'wind', elements: ['wind', 'dark'], cost: 2, priority: P.DEBUFF, target: 'enemy', stats: st(5, 0, 0), effects: [S('poison', 4, 3), S('vulnUp', 2, 3)], chain: { min: 3, effects: [S('poison', 3, 3)] } },
     { id: 'd_frostbite', name: '凍傷', role: 'debuffer', element: 'water', elements: ['water', 'light'], cost: 3, priority: P.DEBUFF, target: 'enemy', stats: st(6, 0, 0), effects: [S('atkDown', 4, 2), S('defDown', 4, 2)], chain: { min: 3, effects: [S('atkDown', 3, 2)] } },
     { id: 't_tide_wall', name: '潮風の盾', role: 'tank', element: 'water', elements: ['water', 'wind'], cost: 3, priority: P.DEFENSE, target: 'allAllies', stats: st(8, 0, 0), effects: [S('defUp', 4, 2), DRAW_ALL], chain: { min: 3, effects: [DRAW_ALL] } },
-    { id: 't_holy_flame', name: '聖炎の誓い', role: 'tank', element: 'light', elements: ['light', 'fire'], cost: 3, priority: P.DEFENSE, target: 'self', stats: st(9, 0, 0), effects: [S('taunt', 30, 2)], chain: { min: 2, effects: [S('taunt', 10, 2)] } },
+    { id: 't_holy_flame', name: '聖炎の誓い', role: 'tank', element: 'light', elements: ['light', 'fire'], cost: 3, priority: P.DEFENSE, target: 'self', stats: st(9, 0, 0), effects: [S('taunt', 30, 1)], chain: { min: 2, effects: [S('taunt', 10, 1)] } },
     { id: 'h_dawn', name: '黎明の祈り', role: 'healer', element: 'light', elements: ['light', 'water'], cost: 3, priority: P.HEAL, target: 'allAllies', stats: st(5, 0, 2), effects: [H_(5), S('regen', 2, 2)], chain: { min: 3, effects: [H_(4)] } },
     { id: 'h_ember_hymn', name: '宵火の歌', role: 'healer', element: 'dark', elements: ['dark', 'fire'], cost: 3, priority: P.BUFF, target: 'allAllies', stats: st(5, 0, 1), effects: [S('atkUp', 3, 2)], chain: { min: 3, effects: [S('dmgUp', 3, 2)] } },
 
@@ -159,7 +159,7 @@
     { id: 'a_r_sun_blade', name: '陽光剣', role: 'attacker', element: 'light', rarity: 'rare', cost: 4, priority: P.ATTACK, target: 'enemy', stats: st(12, 4, 0), effects: [D_(26)], chain: { min: 3, effects: [D_(14)] } },
     { id: 'd_r_venom', name: '毒蛇の呪詛', role: 'debuffer', element: 'wind', rarity: 'rare', cost: 2, priority: P.DEBUFF, target: 'enemy', stats: st(12, 2, 0), effects: [S('poison', 6, 3)], chain: { min: 2, effects: [S('poison', 4, 3)] } },
     { id: 'd_r_eclipse', name: '蝕の帳', role: 'debuffer', element: 'dark', rarity: 'rare', cost: 3, priority: P.DEBUFF, target: 'allEnemies', stats: st(13, 2, 0), effects: [S('vulnUp', 3, 2)], chain: { min: 3, effects: [S('vulnUp', 3, 2)] } },
-    { id: 't_r_aegis', name: '神盾の構え', role: 'tank', element: 'light', rarity: 'rare', cost: 3, priority: P.DEFENSE, target: 'self', stats: st(18, 1, 0), effects: [S('taunt', 40, 2)], chain: { min: 2, effects: [S('taunt', 15, 2)] } },
+    { id: 't_r_aegis', name: '神盾の構え', role: 'tank', element: 'light', rarity: 'rare', cost: 3, priority: P.DEFENSE, target: 'self', stats: st(18, 1, 0), effects: [S('taunt', 40, 1)], chain: { min: 2, effects: [S('taunt', 15, 1)] } },
     { id: 't_r_tidewall', name: '大海の城壁', role: 'tank', element: 'water', rarity: 'rare', cost: 4, priority: P.DEFENSE, target: 'allAllies', stats: st(17, 1, 0), effects: [S('defUp', 7, 2), DRAW_ALL], chain: { min: 3, effects: [S('defUp', 3, 2)] } },
     { id: 'h_r_lifesong', name: '生命の歌', role: 'healer', element: 'water', rarity: 'rare', cost: 3, priority: P.HEAL, target: 'allAllies', stats: st(12, 0, 4), effects: [H_(7)], chain: { min: 2, effects: [S('regen', 3, 2)] } },
     { id: 'h_r_valor', name: '勇気の灯', role: 'healer', element: 'fire', rarity: 'rare', cost: 3, priority: P.BUFF, target: 'allAllies', stats: st(12, 0, 3), effects: [S('atkUp', 4, 2)], chain: { min: 3, effects: [S('dmgUp', 3, 2)] } },
@@ -184,13 +184,13 @@
     { id: 'd_r_blind', name: '閃光の呪縛', role: 'debuffer', element: 'light', rarity: 'rare', cost: 3, priority: P.DEBUFF, target: 'allEnemies', stats: st(13, 1, 0), effects: [S('atkDown', 5, 2)], chain: { min: 3, effects: [S('atkDown', 3, 2)] } },
     { id: 'd_r_void', name: '虚無の刃', role: 'debuffer', element: 'dark', rarity: 'rare', cost: 4, priority: P.ATTACK, target: 'enemy', stats: st(12, 2, 0), effects: [D_(20)], chain: { min: 2, effects: [S('vulnUp', 5, 2)] } },
     // タンク
-    { id: 't_r_flame_oath', name: '炎帝の誓い', role: 'tank', element: 'fire', rarity: 'rare', cost: 2, priority: P.DEFENSE, target: 'self', stats: st(18, 1, 0), effects: [S('taunt', 30, 2)], chain: { min: 2, effects: [S('taunt', 10, 2)] } },
+    { id: 't_r_flame_oath', name: '炎帝の誓い', role: 'tank', element: 'fire', rarity: 'rare', cost: 2, priority: P.DEFENSE, target: 'self', stats: st(18, 1, 0), effects: [S('taunt', 30, 1)], chain: { min: 2, effects: [S('taunt', 10, 1)] } },
     { id: 't_r_war_horn', name: '戦の角笛', role: 'tank', element: 'fire', rarity: 'rare', cost: 3, priority: P.DEFENSE, target: 'allAllies', stats: st(17, 0, 0), effects: [S('defUp', 3, 2), DRAW_ALL], chain: { min: 2, effects: [DRAW_ALL] } },
     { id: 't_r_gale_guard', name: '風の守護陣', role: 'tank', element: 'wind', rarity: 'rare', cost: 3, priority: P.DEFENSE, target: 'allAllies', stats: st(17, 0, 0), effects: [S('defUp', 4, 3), DRAW_ALL], chain: { min: 3, effects: [S('defUp', 2, 3)] } },
     { id: 't_r_tactics', name: '疾風の采配', role: 'tank', element: 'wind', rarity: 'rare', cost: 2, priority: P.ATTACK, target: 'enemy', stats: st(17, 0, 0), effects: [D_(14), { type: 'draw', value: 2, self: true }], chain: { min: 2, effects: [{ type: 'draw', value: 1, self: true }] } },
     { id: 't_r_coral', name: '珊瑚の盾', role: 'tank', element: 'water', rarity: 'rare', cost: 2, priority: P.DEFENSE, target: 'ally', stats: st(18, 0, 0), effects: [S('defUp', 10, 2), DRAW_ALL], chain: { min: 2, effects: [S('defUp', 4, 2)] } },
     { id: 't_r_radiant', name: '光輝の盾陣', role: 'tank', element: 'light', rarity: 'rare', cost: 4, priority: P.DEFENSE, target: 'allAllies', stats: st(17, 0, 0), effects: [S('defUp', 7, 2), DRAW_ALL], chain: { min: 3, effects: [DRAW_ALL] } },
-    { id: 't_r_shadow_wall', name: '影鉄の壁', role: 'tank', element: 'dark', rarity: 'rare', cost: 4, priority: P.DEFENSE, target: 'self', stats: st(19, 1, 0), effects: [S('taunt', 35, 3)], chain: { min: 2, effects: [S('taunt', 10, 3)] } },
+    { id: 't_r_shadow_wall', name: '影鉄の壁', role: 'tank', element: 'dark', rarity: 'rare', cost: 4, priority: P.DEFENSE, target: 'self', stats: st(19, 1, 0), effects: [S('taunt', 35, 1)], chain: { min: 2, effects: [S('taunt', 10, 1)] } },
     { id: 't_r_night_watch', name: '夜警', role: 'tank', element: 'dark', rarity: 'rare', cost: 3, priority: P.DEFENSE, target: 'ally', stats: st(18, 0, 0), effects: [S('defUp', 13, 2), DRAW_ALL], chain: { min: 2, effects: [S('defUp', 4, 2)] } },
     // ヒーラー
     { id: 'h_r_ember_bless', name: '炎の加護', role: 'healer', element: 'fire', rarity: 'rare', cost: 2, priority: P.BUFF, target: 'ally', stats: st(12, 0, 3), effects: [S('atkUp', 5, 2)], chain: { min: 2, effects: [S('atkUp', 2, 2)] } },
@@ -283,6 +283,7 @@
         { type: 'attack', value: 26 },
         { type: 'charge', name: '風を集めている…' },
         { type: 'attack', value: 28 },
+        { type: 'charge', name: '嵐が渦巻いている…' },
         { type: 'ultimate', value: 240, name: '破滅の嵐' },
         { type: 'enrage', value: 6, name: '怒りの咆哮' },
       ] },
