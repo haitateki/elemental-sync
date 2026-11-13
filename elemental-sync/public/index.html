@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>エレメンタル・シンクロ（試作版）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- タイトル -->
+  <section id="screen-title" class="screen">
+    <div class="title-wrap">
+      <canvas id="title-art" width="320" height="120"></canvas>
+      <h1>エレメンタル・シンクロ</h1>
+      <p class="tagline">属性をそろえて、4人で一撃を。</p>
+      <div class="panel">
+        <label>なまえ <input id="in-name" maxlength="12" placeholder="なまえ"></label>
+        <div class="row">
+          <button id="btn-create" class="btn primary">ルームを作る</button>
+        </div>
+        <div class="row">
+          <input id="in-code" maxlength="4" placeholder="ルームコード" class="code-input">
+          <button id="btn-join" class="btn">参加する</button>
+        </div>
+        <div class="row">
+          <button id="btn-deck" class="btn">デッキ編集・所持カード</button>
+          <button id="btn-save" class="btn small">セーブデータ（保存・引き継ぎ）</button>
+        </div>
+      </div>
+      <p id="conn-status" class="conn"></p>
+    </div>
+  </section>
+
+  <!-- デッキ編集 -->
+  <section id="screen-deck" class="screen hidden">
+    <div class="topbar"><button id="btn-deck-back" class="btn small">← もどる</button><h2>デッキ編集</h2><span class="hint">役職ごとにデッキを組みます（<span id="deck-range"></span>）</span></div>
+    <div id="deck-tabs" class="tabs"></div>
+    <div class="deck-cols">
+      <div class="deck-col"><h3>固有枠 <span id="deck-unique-count" class="hint"></span> <span class="hint">（デッキとは別。戦闘で青いゲージが満タンになると使える）</span></h3><div id="deck-uniques" class="card-grid"></div><h3>所持カード</h3><div id="deck-owned" class="card-grid"></div></div>
+      <div class="deck-col narrow"><h3>デッキ <span id="deck-count"></span></h3><div id="deck-stats" class="deck-stats"></div><div id="deck-list"></div><button id="btn-deck-reset" class="btn small">初期デッキに戻す</button></div>
+    </div>
+  </section>
+
+  <!-- ルーム -->
+  <section id="screen-room" class="screen hidden">
+    <div class="topbar"><button id="btn-room-leave" class="btn small">← 退出</button><h2>ルーム <span id="room-code" class="code"></span></h2><button id="btn-copy" class="btn small">招待リンクをコピー</button></div>
+    <div class="room-body">
+      <div class="panel">
+        <h3>メンバー（空いた席はAIが入ります）</h3>
+        <div id="room-slots" class="slots"></div>
+      </div>
+      <div class="panel">
+        <h3>あなたの役職</h3>
+        <div id="role-pick" class="role-pick"></div>
+        <p class="hint">役職はパーティ内で重複できません。デッキは「デッキ編集」で組んだものを使います。</p>
+      </div>
+      <div class="panel">
+        <h3>ステージ</h3>
+        <div class="row"><select id="room-stage" class="stage-select"></select><label>危険度 <select id="room-star"></select></label></div>
+        <div id="stage-info"></div>
+        <div class="row">
+
+          <button id="btn-start" class="btn primary">戦闘開始</button>
+        </div>
+        <p id="start-hint" class="hint"></p>
+      </div>
+      <div class="panel">
+        <h3>依頼（勝利すると判定。達成すると新しい依頼に入れ替わります）</h3>
+        <div id="room-quests"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 戦闘 -->
+  <section id="screen-battle" class="screen hidden">
+    <div class="battle-top">
+      <span id="b-stage"></span><span id="b-turn"></span>
+      <span id="b-timer" class="timer"></span>
+      <button id="btn-restart" class="btn small">やり直し</button>
+      <button id="btn-retreat" class="btn small">撤退</button>
+      <button id="btn-help" class="btn small">ルール</button>
+      <button id="btn-log" class="btn small">ログ</button>
+    </div>
+    <div id="scene-wrap">
+      <canvas id="scene" width="320" height="180"></canvas>
+      <div id="overlay"><div id="units" class="layer"></div><div id="fxl" class="layer"></div></div>
+      <div id="banner" class="banner hidden"></div>
+      <div id="log" class="log hidden"></div>
+    </div>
+    <div id="sync-bar"></div>
+    <div class="hand-area">
+      <div class="hand-left">
+        <div class="energy"><span id="energy-orb"></span><span class="lbl">エネルギー</span></div>
+        <div id="me-stats" class="me-stats"></div>
+        <div id="my-reserved" class="my-reserved"></div>
+      </div>
+      <div id="unique-area" class="unique-area"></div>
+      <div id="hand" class="hand"></div>
+      <div class="hand-right">
+        <div id="pile-info" class="hint"></div>
+        <button id="btn-confirm" class="btn primary big">確定</button>
+        <div id="confirm-info" class="hint"></div>
+      </div>
+    </div>
+    <div id="target-hint" class="target-hint hidden"></div>
+  </section>
+
+  <div id="tooltip" class="tooltip hidden"></div>
+  <div id="modal" class="modal hidden"><div class="modal-box"><div id="modal-body"></div><div class="modal-btns" id="modal-btns"></div></div></div>
+  <div id="toast" class="toast hidden"></div>
+  <div id="notices" class="notices"></div>
+  <div id="retreat-box" class="retreat-box hidden"></div>
+</div>
+<script src="/shared/data.js"></script>
+<script src="sprites.js"></script>
+<script src="client.js"></script>
+</body>
+</html>
